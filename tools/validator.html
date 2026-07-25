@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QDEF Validator — QDEF</title>
+  <meta name="description" content="Validate and inspect hex-encoded QDEF payloads — check magic header, parse CBOR, verify Record structure.">
+  <link rel="icon" href="../assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header>
+    <div class="inner">
+      <a href="../index.html" class="logo"><img src="../assets/logo.png" alt="" width="28" height="28" style="vertical-align:middle;margin-right:6px"> QDEF</a>
+      <nav>
+        <a href="../index.html">Home</a>
+        <a href="../spec.html">Spec</a>
+        <a href="../design.html">Design</a>
+        <a href="../examples.html">Examples</a>
+        <a href="../tools/validator.html">Validator</a>
+        <a href="../tools/registry-generator.html">Registry</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>QDEF Hex Validator</h1>
+    <p>Paste a hex-encoded QDEF payload below to verify its structure. Spaces and <code>0x</code> prefixes are optional.</p>
+
+    <div class="validator-section">
+      <label for="hex-input"><strong>Hex-encoded payload:</strong></label>
+      <textarea id="hex-input" placeholder="Paste hex bytes here... e.g. 51 44 45 46 82 18 64 ..."></textarea>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button class="btn" onclick="validateQDEPayload(document.getElementById('hex-input').value)">Validate</button>
+        <button class="btn" style="background:#6c757d" onclick="document.getElementById('hex-input').value='';document.getElementById('validator-output').classList.remove('visible')">Clear</button>
+        <button class="btn" style="background:#6c757d" onclick="loadExample()">Load Example</button>
+      </div>
+    </div>
+
+    <div id="validator-output">
+      <div id="validation-result" class="validation-result"></div>
+      <div id="cbor-tree" class="tree"></div>
+    </div>
+  </main>
+
+  <footer>
+    <p>QDEF &mdash; Quick Data Exchange Format &bull; <a href="https://github.com/qdef-format/qdef">GitHub</a></p>
+  </footer>
+
+  <script src="validator.js"></script>
+</body>
+</html>

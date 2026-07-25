@@ -1,0 +1,27 @@
+{
+  "name": "qdef",
+  "version": "1.0.0",
+  "description": "QDEF is a general-purpose binary container for multi-action 2D barcodes (QR, Data Matrix, Aztec) and NFC tags — carry one or more typed records in a single scan or tap.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qdef-format/qdef.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/qdef-format/qdef/issues"
+  },
+  "homepage": "https://github.com/qdef-format/qdef#readme",
+  "dependencies": {
+    "marked": "^18.0.7"
+  }
+}

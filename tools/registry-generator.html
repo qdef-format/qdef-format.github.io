@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registry Generator — QDEF</title>
+  <meta name="description" content="Generate QDEF namespace registration and Record Type templates for the QDEF registry.">
+  <link rel="icon" href="../assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header>
+    <div class="inner">
+      <a href="../index.html" class="logo"><img src="../assets/logo.png" alt="" width="28" height="28" style="vertical-align:middle;margin-right:6px"> QDEF</a>
+      <nav>
+        <a href="../index.html">Home</a>
+        <a href="../spec.html">Spec</a>
+        <a href="../design.html">Design</a>
+        <a href="../examples.html">Examples</a>
+        <a href="../tools/validator.html">Validator</a>
+        <a href="../tools/registry-generator.html">Registry</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>QDEF Registry Generator</h1>
+    <p>Generate a namespace registration and Record Type definitions for the QDEF registry. Namespace owners manage their own Record Types; this template gives us enough info to poll your registry.</p>
+
+    <form id="registry-form" onsubmit="generate(); return false">
+      <section class="form-section">
+        <h2>Namespace Registration</h2>
+
+        <div class="field">
+          <label>Namespace Name <span class="req">*</span></label>
+          <input type="text" id="ns-name" placeholder="com.example.project" oninput="deriveHint()">
+          <span class="hint">Reverse-domain name, e.g. <code>com.example.tagdrop</code></span>
+        </div>
+
+        <div class="field">
+          <label>Variable Name</label>
+          <input type="text" id="ns-variable" placeholder="Tag Drop">
+          <span class="hint">Space-separated words for generating identifiers</span>
+        </div>
+
+        <div class="field">
+          <label>Namespace ID (hex) <span class="req">*</span></label>
+          <div class="field-row">
+            <input type="text" id="ns-id" placeholder="663c1cf2" style="font-family:monospace">
+            <button type="button" class="btn btn-sm" onclick="deriveHint()" title="Derive 4 bytes from namespace name via SHA-256">Derive from name</button>
+          </div>
+          <span class="hint">4+ hex bytes (8+ hex chars). Use hash-derivation (button) to self-certify.</span>
+        </div>
+
+        <div class="field">
+          <label>Point of Contact <span class="req">*</span></label>
+          <input type="text" id="ns-contact" placeholder="mailto:project@example.com">
+          <span class="hint">Email or URL for the registry maintainer</span>
+        </div>
+
+        <div class="field">
+          <label>Registry URL</label>
+          <input type="text" id="ns-registry-url" placeholder="https://github.com/example/project/blob/main/QDEF-TYPES.md">
+          <span class="hint">Where you publish your Record Type definitions. We'll poll this to stay in sync.</span>
+        </div>
+
+        <div class="field">
+          <label>Reference</label>
+          <input type="text" id="ns-ref" placeholder="https://github.com/example/project">
+          <span class="hint">Link to project homepage or spec</span>
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <select id="ns-status">
+            <option value="active">Active</option>
+            <option value="experimental">Experimental</option>
+            <option value="deprecated">Deprecated</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>Record Types <span style="font-weight:400;font-size:0.9rem;color:var(--text-muted)">(within this namespace, optional)</span></h2>
+        <p style="margin-bottom:0.5rem">Define the scoped Record Types your namespace uses.</p>
+
+        <div id="record-types-container">
+          <div class="record-type-entry">
+            <h3>Type 1</h3>
+            <div class="field">
+              <label>Scoped Type ID <span class="req">*</span></label>
+              <input type="number" class="rt-typeid" min="1" step="2" placeholder="1">
+              <span class="hint">Odd uint (1, 3, 5, ...). Even = global, odd = namespace-scoped.</span>
+            </div>
+            <div class="field">
+              <label>Record Type Name</label>
+              <input type="text" class="rt-name" placeholder="com.example.project/route">
+              <span class="hint">Reverse-domain name, e.g. <code>com.example.project/route</code></span>
+            </div>
+            <div class="field">
+              <label>Variable Name</label>
+              <input type="text" class="rt-variable" placeholder="Project Route">
+            </div>
+            <div class="field">
+              <label>Data item (CBOR shape)</label>
+              <input type="text" class="rt-shape" placeholder="map { 0: bytes, 2: uint }">
+            </div>
+            <div class="field">
+              <label>Semantics</label>
+              <input type="text" class="rt-semantics" placeholder="Routes payload to a physical delivery target">
+            </div>
+            <div class="field">
+              <label>Reference</label>
+              <input type="text" class="rt-ref" placeholder="https://github.com/example/project/SPEC.md#route">
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-outline" onclick="addRecordType()">+ Add Record Type</button>
+      </section>
+
+      <div style="margin-top:2rem">
+        <button type="submit" class="btn">Generate</button>
+        <button type="button" class="btn btn-secondary" onclick="clearForm()">Clear</button>
+        <button type="button" class="btn btn-secondary" onclick="loadExample()">Load Example</button>
+      </div>
+    </form>
+
+    <div id="generator-output">
+      <h2>Generated Entry</h2>
+      <pre id="generated-text" class="output-block"></pre>
+      <button class="btn" onclick="copyOutput()">Copy to Clipboard</button>
+    </div>
+  </main>
+
+  <footer>
+    <p>QDEF &mdash; Quick Data Exchange Format &bull; <a href="https://github.com/qdef-format/qdef">GitHub</a></p>
+  </footer>
+
+  <script src="registry-generator.js"></script>
+</body>
+</html>

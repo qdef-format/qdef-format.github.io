@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QDEF — Quick Data Exchange Format</title>
+  <meta name="description" content="QDEF is a general-purpose binary container for multi-action 2D barcodes (QR, Data Matrix, Aztec) and NFC tags.">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header>
+    <div class="inner">
+      <a href="index.html" class="logo"><img src="assets/logo.png" alt="" width="28" height="28" style="vertical-align:middle;margin-right:6px"> QDEF</a>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="spec.html">Spec</a>
+        <a href="design.html">Design</a>
+        <a href="examples.html">Examples</a>
+        <a href="tools/validator.html">Validator</a>
+        <a href="tools/registry-generator.html">Registry</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <img src="assets/logo.png" alt="QDEF logo" width="128" height="128" style="margin-bottom:0.5rem">
+      <p style="font-size:1rem;color:var(--text-muted);margin-bottom:0.5rem;font-family:'Courier New',monospace;letter-spacing:0.05em">Quick Data Exchange Format</p>
+      <h1>QDEF</h1>
+      <div class="magic">0x51 0x44 0x45 0x46 &rarr; "QDEF"</div>
+      <p class="tagline">
+        A general-purpose binary container for multi-action 2D barcodes
+        and NFC tags — carry one or more typed records in a single scan or tap.
+      </p>
+    </section>
+
+    <section class="example-section">
+      <div class="container" style="padding-bottom:0">
+        <h2>What a QDEF payload looks like</h2>
+        <p>
+          A single scan carrying a Wi-Fi credential <em>and</em> a fallback URL —
+          two unrelated records, each independently routable, in one 74-byte payload:
+        </p>
+      </div>
+      <div class="example-panes-wrap">
+      <div class="example-panes">
+        <div>
+          <div class="label">Hex dump (74 bytes)</div>
+          <pre>51 44 45 46                              # "QDEF" magic
+82                                        # root Record: array(2), typeId
+                                          #   omitted → default 0 (Bundle);
+                                          #   2 subrecords
+   82                                    #   Record 1: array(2)
+      18 64                              #     typeID: 100 (Wi-Fi)
+      a3                                 #     field map(3)
+         00   6e 4d 79 20 43 6f 66 66 65 65 20 53 68 6f 70
+                                          #       0: "My Coffee Shop"
+         02   68 67 75 65 73 74 31 32 33  #       2: "guest123"
+         04   02                          #       4: 2 (WPA2)
+
+   82                                    #   Record 2: array(2)
+      0a                                 #     typeID: 10 (Open/Hint URI)
+      a1                                 #     field map(1)
+         00   78 1f 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70
+               6c 65 2e 63 6f 6d 2f 63 6f 66 66 65 65 2d 6d
+               65 6e 75
+                                          #       0: "https://example.com/coffee-menu"</pre>
+        </div>
+        <div>
+          <div class="label">Decoded (CBOR diagnostic)</div>
+          <pre>[
+  [100, {                                # Wi-Fi
+    0: "My Coffee Shop",                 # CRITICAL: SSID
+    2: "guest123",                       # CRITICAL: Password
+    4: 2                                 # CRITICAL: WPA2
+  }],
+  [10, {                                 # Open/Hint URI
+    0: "https://example.com/coffee-menu"
+  }]
+]</pre>
+        </div>
+      </div>
+      </div>
+      <div class="container" style="padding-top:1.5rem">
+      <p>
+        A Wi-Fi app reads Record 1. A generic browser offers Record 2 as a
+        fallback URL. Neither needs to know the other exists.
+      </p>
+      </div>
+    </section>
+
+    <section style="margin-top:3rem">
+      <h2>Why QDEF</h2>
+      <p>
+        Existing text barcode schemes (<code>WIFI:S:...;;</code>, <code>BEGIN:VCARD</code>)
+        are rigid, single-purpose, and text-only. NDEF solves multi-record framing
+        but only for NFC. Nothing fills that role for a plain byte-mode QR, Data
+        Matrix, or Aztec code — or for an NFC payload with no application-specific
+        MIME type already routing it.
+      </p>
+      <p><strong>QDEF is the missing container:</strong></p>
+      <ul>
+        <li><strong>Binary-first</strong> — no alphanumeric-mode constraint, no base32/base41 overhead.</li>
+        <li><strong>Multi-action</strong> — one self-delimited CBOR array of Records, so unrelated applications can share one physical code.</li>
+        <li><strong>Layered</strong> — a minimal mandatory core (routing and criticality only) plus a separate optional standard library (split, compress, encrypt, URI fallback).</li>
+        <li><strong>Usable by constrained scanners</strong> — every Record's type is readable at zero decode cost from a plain map key.</li>
+      </ul>
+    </section>
+
+    <section style="margin-top:3rem">
+      <h2>Explore</h2>
+      <div class="cards">
+        <a href="spec.html" class="card" style="display:block;color:inherit">
+          <h3>Specification</h3>
+          <p>Full wire format spec — container framing, Record architecture, standard library types, and grammar.</p>
+          <span style="color:var(--accent);font-size:0.9rem">Read the spec &rarr;</span>
+        </a>
+        <a href="design.html" class="card" style="display:block;color:inherit">
+          <h3>Design Rationale</h3>
+          <p>Why QDEF looks the way it does — mechanisms tried and removed, alternatives weighed, and open questions.</p>
+          <span style="color:var(--accent);font-size:0.9rem">Read the design doc &rarr;</span>
+        </a>
+        <a href="examples.html" class="card" style="display:block;color:inherit">
+          <h3>Examples</h3>
+          <p>Illustrative Record Type definitions for Wi-Fi, event tickets, and more.</p>
+          <span style="color:var(--accent);font-size:0.9rem">See examples &rarr;</span>
+        </a>
+        <a href="tools/validator.html" class="card" style="display:block;color:inherit">
+          <h3>Hex Validator</h3>
+          <p>Paste a hex-encoded QDEF payload to verify its structure and inspect its Records.</p>
+          <span style="color:var(--accent);font-size:0.9rem">Open tool &rarr;</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>QDEF &mdash; Quick Data Exchange Format &bull; <a href="https://github.com/qdef-format/qdef">GitHub</a></p>
+  </footer>
+</body>
+</html>
