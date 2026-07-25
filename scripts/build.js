@@ -20,6 +20,8 @@ const pageMap = {
   'QDEF-SPEC.md': 'spec.html',
   'DESIGN.md': 'design.html',
   'EXAMPLES.md': 'examples.html',
+  'IMPLEMENTATIONS.md': 'implementations.html',
+  'RELATED-WORK.md': 'related-work.html',
   'IMPLEMENTATION-NOTES.md': 'https://github.com/qdef-format/qdef/blob/main/docs/IMPLEMENTATION-NOTES.md'
 };
 
@@ -49,7 +51,9 @@ const docsDir = path.join(ROOT, 'docs');
 const map = {
   'QDEF-SPEC.md': { out: 'spec.html', title: 'Specification', desc: 'QDEF wire format specification.', banner: true },
   'DESIGN.md': { out: 'design.html', title: 'Design Rationale', desc: 'QDEF design rationale.', banner: false },
-  'EXAMPLES.md': { out: 'examples.html', title: 'Examples', desc: 'QDEF Record Type examples.', banner: false }
+  'EXAMPLES.md': { out: 'examples.html', title: 'Examples', desc: 'QDEF Record Type examples.', banner: false },
+  'IMPLEMENTATIONS.md': { out: 'implementations.html', title: 'Implementations', desc: 'Projects and applications using QDEF.', banner: false },
+  'RELATED-WORK.md': { out: 'related-work.html', title: 'Related Work', desc: 'Survey of related formats and standards in the typed-record container space.', banner: false }
 };
 
 const shell = fs.readFileSync(path.join(ROOT, 'templates', 'shell.html'), 'utf-8');
@@ -66,7 +70,7 @@ Object.entries(map).forEach(([file, cfg]) => {
     .replace('__CONTENT__', body);
 
   if (cfg.banner) {
-    const banner = '<div class="spec-status"><strong>Status: Draft.</strong> Validated by two throwaway prototypes (Node round-trip, <code>no_std</code> Rust/Cortex-M0). Not yet a reference library; not yet used in production.</div>';
+    const banner = '<div class="spec-status"><strong>Status: Draft — work in progress.</strong> The wire format is settled and validated by two prototypes, but there is no reference library and no production use yet.</div>';
     page = page.replace('<main class="container content">', `<main class="container content">\n${banner}`);
   }
 
@@ -86,7 +90,13 @@ Object.entries(map).forEach(([file, cfg]) => {
 });
 
 fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
-fs.copyFileSync(path.join(ROOT, 'assets', 'logo.svg'), path.join(OUT, 'assets', 'logo.svg'));
+// logo.svg is the single source; derive a white version for the header
+let logoSvg = fs.readFileSync(path.join(ROOT, 'assets', 'logo.svg'), 'utf-8');
+fs.writeFileSync(path.join(OUT, 'assets', 'logo.svg'), logoSvg);
+fs.writeFileSync(
+  path.join(OUT, 'assets', 'logo-white.svg'),
+  logoSvg.replace('<svg ', '<svg data-theme="white" ')
+);
 fs.copyFileSync(path.join(ROOT, 'assets', 'logo.png'), path.join(OUT, 'assets', 'logo.png'));
 fs.copyFileSync(path.join(ROOT, 'index.html'), path.join(OUT, 'index.html'));
 

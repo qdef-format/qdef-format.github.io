@@ -1,173 +1,37 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
-   viewBox="0 0 512 512"
-   version="1.1"
-   id="svg6"
-   sodipodi:docname="logo.svg"
-   inkscape:version="1.4.4 (1:1.4.4+202605061436+dcaf3e7d9e)"
-   inkscape:export-filename="logo"
-   inkscape:export-xdpi="96"
-   inkscape:export-ydpi="96"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-  <sodipodi:namedview
-     id="namedview6"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="1.1435242"
-     inkscape:cx="181.01934"
-     inkscape:cy="226.4928"
-     inkscape:window-width="1920"
-     inkscape:window-height="1008"
-     inkscape:window-x="1920"
-     inkscape:window-y="0"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="svg6" />
-  <defs
-     id="defs1">
-    <style
-       id="style1">
-      .bg { fill: #f3ede1; }
-      .frame { fill: none; stroke: #2a3941; stroke-width: 6; stroke-linejoin: round; }
-      .letter { fill: #2a3941; font-family: 'Courier New', 'SF Mono', monospace; font-weight: 900; }
-      .accent { fill: #d9652b; }
-    </style>
-  </defs>
-  <!-- Rounded hexagon &#8212; same shape language as TagDrop -->
-  <!-- QDEF lettering -->
-  <!-- Accent: data stripes suggesting multi-record payload -->
-  <!-- Accent: three dots (QR finder echo) in top-right -->
-  <g
-     font-family="'Courier New', monospace"
-     font-weight="bold"
-     font-size="60px"
-     fill="#2c3e50"
-     id="g18-5"
-     transform="matrix(3.1830938,0,0,3.1830938,-365.32777,-59.494528)"
-     style="fill:#000000;stroke:none">
-    <text
-       x="118.19158"
-       y="121.57296"
-       id="text17-3"
-       style="font-size:58.1355px;fill:#000000;stroke:none;stroke-width:0.968925"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'URW Gothic';-inkscape-font-specification:'URW Gothic';stroke-width:0.968925"
-         id="tspan20-5">QDEF</tspan></text>
-  </g>
-  <g
-     inkscape:label="QR Code: QDEF"
-     transform="matrix(2.5959334,0,0,2.5959334,875.7214,484.28798)"
-     id="g20-2">
-    <g
-       style="fill:#000000;stroke:none"
-       id="g19-9"
-       transform="matrix(2.1972178,0,0,2.1972178,-365.45335,-214.16666)">
-      <path
-         d="M 43.600003,99.718572 H 16.4 c -0.2209,0 -0.4,-0.1791 -0.4,-0.4 v -27.2 c 0,-0.2209 0.1791,-0.4 0.4,-0.4 h 27.200003 c 0.2209,0 0.4,0.1791 0.4,0.4 v 27.2 c 0,0.2209 -0.1791,0.4 -0.4,0.4 z m -3.6,-4.4 v -19.2 c 0,-0.2209 -0.1791,-0.4 -0.4,-0.4 H 20.4 c -0.2209,0 -0.4,0.1791 -0.4,0.4 v 19.2 c 0,0.2209 0.1791,0.4 0.4,0.4 h 19.200003 c 0.2209,0 0.4,-0.1791 0.4,-0.4 z m 59.6,-51.6 h -27.2 c -0.2209,0 -0.4,-0.1791 -0.4,-0.4 V 16.118573 c 0,-0.2209 0.1791,-0.4 0.4,-0.4 h 27.2 c 0.2209,0 0.399997,0.1791 0.399997,0.4 v 27.199999 c 0,0.2209 -0.179097,0.4 -0.399997,0.4 z m -56,0 H 16.4 c -0.2209,0 -0.4,-0.1791 -0.4,-0.4 V 16.118573 c 0,-0.2209 0.1791,-0.4 0.4,-0.4 h 27.200003 c 0.2209,0 0.4,0.1791 0.4,0.4 v 27.199999 c 0,0.2209 -0.1791,0.4 -0.4,0.4 z m 52.4,-4.4 v -19.2 c 0,-0.2209 -0.1791,-0.4 -0.4,-0.4 h -19.2 c -0.2209,0 -0.4,0.1791 -0.4,0.4 v 19.2 c 0,0.2209 0.1791,0.4 0.4,0.4 h 19.2 c 0.2209,0 0.4,-0.1791 0.4,-0.4 z m -56,0 v -19.2 c 0,-0.2209 -0.1791,-0.4 -0.4,-0.4 H 20.4 c -0.2209,0 -0.4,0.1791 -0.4,0.4 v 19.2 c 0,0.2209 0.1791,0.4 0.4,0.4 h 19.200003 c 0.2209,0 0.4,-0.1791 0.4,-0.4 z"
-         id="path25"
-         sodipodi:nodetypes="ssssssssssssssssssssssssssssssssssssssssssssssssssssss" />
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    :root { --fill: #000000; }
+    [data-theme="white"] { --fill: #ffffff; }
+    .fill { fill: var(--fill); }
+    .fill-none { fill: none; }
+  </style>
+  <g class="fill" font-family="'Courier New', monospace" font-weight="bold">
+    <g transform="matrix(3.1830938,0,0,3.1830938,-365.32777,-59.494528)">
+      <text x="118.19158" y="121.57296" font-size="58.1355px">QDEF</text>
     </g>
-  </g>
-  <g
-     font-family="'Courier New', monospace"
-     font-weight="bold"
-     font-size="60px"
-     fill="#2c3e50"
-     id="g23"
-     transform="matrix(3.1830938,0,0,3.1830938,249.46952,-178.28041)"
-     style="fill:#000000;stroke:none">
-    <text
-       x="-62.808846"
-       y="101.51894"
-       id="text26"
-       style="font-size:47.4432px;fill:#000000;stroke:none;stroke-width:0.790721"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';stroke-width:0.790721"
-         id="tspan26">0</tspan></text>
-  </g>
-  <g
-     font-family="'Courier New', monospace"
-     font-weight="bold"
-     font-size="60px"
-     fill="#2c3e50"
-     id="g27"
-     transform="matrix(3.1830938,0,0,3.1830938,408.38577,-178.28041)"
-     style="fill:#000000;stroke:none">
-    <text
-       x="-62.178478"
-       y="101.2668"
-       id="text27"
-       style="font-size:47.4432px;fill:#000000;stroke:none;stroke-width:0.790721"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';stroke-width:0.790721"
-         id="tspan27">1</tspan></text>
-  </g>
-  <g
-     font-family="'Courier New', monospace"
-     font-weight="bold"
-     font-size="60px"
-     fill="#2c3e50"
-     id="g28"
-     transform="matrix(3.1830938,0,0,3.1830938,571.31509,-179.08302)"
-     style="fill:#000000;stroke:none">
-    <text
-       x="-62.808846"
-       y="101.51894"
-       id="text28"
-       style="font-size:47.4432px;fill:#000000;stroke:none;stroke-width:0.790721"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';stroke-width:0.790721"
-         id="tspan28">0</tspan></text>
-  </g>
-  <g
-     font-family="'Courier New', monospace"
-     font-weight="bold"
-     font-size="60px"
-     fill="#2c3e50"
-     id="g29"
-     transform="matrix(3.1830938,0,0,3.1830938,254.00974,141.80603)"
-     style="fill:#000000;stroke:none">
-    <text
-       x="-62.808846"
-       y="101.51894"
-       id="text29"
-       style="font-size:47.4432px;fill:#000000;stroke:none;stroke-width:0.790721"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';stroke-width:0.790721"
-         id="tspan29">0</tspan></text>
-  </g>
-  <g
-     font-family="'Courier New', monospace"
-     font-weight="bold"
-     font-size="60px"
-     fill="#2c3e50"
-     id="g30"
-     transform="matrix(3.1830938,0,0,3.1830938,412.92601,141.80603)"
-     style="fill:#000000;stroke:none">
-    <text
-       x="-62.178478"
-       y="101.2668"
-       id="text30"
-       style="font-size:47.4432px;fill:#000000;stroke:none;stroke-width:0.790721"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';stroke-width:0.790721"
-         id="tspan30">1</tspan></text>
-  </g>
-  <g
-     font-family="'Courier New', monospace"
-     font-weight="bold"
-     font-size="60px"
-     fill="#2c3e50"
-     id="g31"
-     transform="matrix(3.1830938,0,0,3.1830938,575.85533,141.00342)"
-     style="fill:#000000;stroke:none">
-    <text
-       x="-62.808846"
-       y="101.51894"
-       id="text31"
-       style="font-size:47.4432px;fill:#000000;stroke:none;stroke-width:0.790721"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';stroke-width:0.790721"
-         id="tspan31">0</tspan></text>
+    <g transform="matrix(2.5959334,0,0,2.5959334,875.7214,484.28798)">
+      <g transform="matrix(2.1972178,0,0,2.1972178,-365.45335,-214.16666)">
+        <path d="M 43.600003,99.718572 H 16.4 c -0.2209,0 -0.4,-0.1791 -0.4,-0.4 v -27.2 c 0,-0.2209 0.1791,-0.4 0.4,-0.4 h 27.200003 c 0.2209,0 0.4,0.1791 0.4,0.4 v 27.2 c 0,0.2209 -0.1791,0.4 -0.4,0.4 z m -3.6,-4.4 v -19.2 c 0,-0.2209 -0.1791,-0.4 -0.4,-0.4 H 20.4 c -0.2209,0 -0.4,0.1791 -0.4,0.4 v 19.2 c 0,0.2209 0.1791,0.4 0.4,0.4 h 19.200003 c 0.2209,0 0.4,-0.1791 0.4,-0.4 z m 59.6,-51.6 h -27.2 c -0.2209,0 -0.4,-0.1791 -0.4,-0.4 V 16.118573 c 0,-0.2209 0.1791,-0.4 0.4,-0.4 h 27.2 c 0.2209,0 0.399997,0.1791 0.399997,0.4 v 27.199999 c 0,0.2209 -0.179097,0.4 -0.399997,0.4 z m -56,0 H 16.4 c -0.2209,0 -0.4,-0.1791 -0.4,-0.4 V 16.118573 c 0,-0.2209 0.1791,-0.4 0.4,-0.4 h 27.200003 c 0.2209,0 0.4,0.1791 0.4,0.4 v 27.199999 c 0,0.2209 -0.1791,0.4 -0.4,0.4 z m 52.4,-4.4 v -19.2 c 0,-0.2209 -0.1791,-0.4 -0.4,-0.4 h -19.2 c -0.2209,0 -0.4,0.1791 -0.4,0.4 v 19.2 c 0,0.2209 0.1791,0.4 0.4,0.4 h 19.2 c 0.2209,0 0.4,-0.1791 0.4,-0.4 z m -56,0 v -19.2 c 0,-0.2209 -0.1791,-0.4 -0.4,-0.4 H 20.4 c -0.2209,0 -0.4,0.1791 -0.4,0.4 v 19.2 c 0,0.2209 0.1791,0.4 0.4,0.4 h 19.200003 c 0.2209,0 0.4,-0.1791 0.4,-0.4 z"/>
+      </g>
+    </g>
+    <g transform="matrix(3.1830938,0,0,3.1830938,249.46952,-178.28041)">
+      <text x="-62.808846" y="101.51894" font-size="47.4432px">0</text>
+    </g>
+    <g transform="matrix(3.1830938,0,0,3.1830938,408.38577,-178.28041)">
+      <text x="-62.178478" y="101.2668" font-size="47.4432px">1</text>
+    </g>
+    <g transform="matrix(3.1830938,0,0,3.1830938,571.31509,-179.08302)">
+      <text x="-62.808846" y="101.51894" font-size="47.4432px">0</text>
+    </g>
+    <g transform="matrix(3.1830938,0,0,3.1830938,254.00974,141.80603)">
+      <text x="-62.808846" y="101.51894" font-size="47.4432px">0</text>
+    </g>
+    <g transform="matrix(3.1830938,0,0,3.1830938,412.92601,141.80603)">
+      <text x="-62.178478" y="101.2668" font-size="47.4432px">1</text>
+    </g>
+    <g transform="matrix(3.1830938,0,0,3.1830938,575.85533,141.00342)">
+      <text x="-62.808846" y="101.51894" font-size="47.4432px">0</text>
+    </g>
   </g>
 </svg>

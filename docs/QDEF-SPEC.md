@@ -1,14 +1,13 @@
 # QDEF — Quick Data Exchange Format
 
-**Status: Draft. Validated by two throwaway prototypes — a Node round-trip
-prototype covering the full design ([`/prototype`](../prototype)) and a
-`no_std`, zero-dependency Rust prototype of the mandatory core specifically
-([`/rust/qdef-core`](../rust/qdef-core)), which also builds for a bare-metal
-Cortex-M0 target (see [FINDINGS.md](FINDINGS.md)); not yet implemented as a
-reference library, not yet used in production anywhere. This document is
-normative; the reasoning behind its decisions — mechanisms tried and
-removed, alternatives weighed, and what's still unresolved — lives in
-[DESIGN.md](DESIGN.md).**
+**Status: Draft — work in progress. The wire format is settled and
+validated by two prototypes — a Node round-trip prototype covering the
+full design (`/prototype`) and a `no_std`, zero-dependency Rust prototype
+of the mandatory core (`/rust/qdef-core`), which also builds for a bare-metal
+Cortex-M0 target; but there is no reference library and no production use
+yet. This document is normative; the reasoning behind its decisions —
+mechanisms tried and removed, alternatives weighed, and what's still
+unresolved — lives in [DESIGN.md](DESIGN.md).**
 
 QDEF is a general-purpose binary container for multi-action 2D barcodes
 (QR, Data Matrix, Aztec) and NFC tags. Think of it as filling the gap NDEF

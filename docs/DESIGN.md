@@ -3345,6 +3345,24 @@ for the identical reason — it already solved this, adopting a second,
 QDEF-native mechanism would just be a second thing that could disagree with
 the first.
 
+## Tooling note: this spec was written with LLM assistance
+
+The QDEF specification and design documents were written with the assistance
+of large language models — Claude (Anthropic), opencode, and a handful of
+others — over many iterations. This was never a single-prompt generation:
+text was drafted, reviewed, revised, tested against real prototypes, and
+revised again, often across dozens of back-and-forth cycles per section.
+LLMs accelerated the write-and-revise loop; they did not define the
+architecture, which was guided by the constraints of the problem domain
+(byte-mode QR, constrained embedded decoders, real adopter feedback) and
+validated by working prototype code. Every Record Type, every wire-format
+rule, and every mechanism described here was either prototyped in Node or
+Rust before being documented, or is explicitly flagged as speculative.
+
+This note exists because the project believes in being straightforward
+about its process — not because the content is any less reviewed or
+tested than if it had been written by hand.
+
 ## A confession (Parkinson's Law of Triviality, self-reported)
 
 C. Northcote Parkinson's original example: a committee approves a
