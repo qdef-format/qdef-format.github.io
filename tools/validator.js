@@ -417,7 +417,7 @@ const EXAMPLES = [
     label: 'Single URL (global typeId=10)',
     hex: '51 44 45 46 ' +
       '81 ' +
-      '  82 0a a1 00 78 1b 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 71 64 65 66'
+      '  82 0a a1 00 78 18 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 71 64 65 66'
   },
   {
     label: 'Empty Bundle (typeId=0, no subrecords)',
