@@ -358,7 +358,7 @@ function annotateItem(item, text) {
   if (item) item._ann = text;
 }
 
-function analyzeRecord(arr, issues, label, depth) {
+function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
   if (depth > 10) {
     issues.push({ level: 'error', text: `${label}: nesting depth exceeds 10` });
     return null;
@@ -401,6 +401,11 @@ function analyzeRecord(arr, issues, label, depth) {
 
   // Remaining items are subrecords
   const subrecords = items.slice(idx).filter(i => i.type === 'array');
+
+  // Per §3.5, a namespace cascades to subrecords: the effective namespace
+  // used for validation is this Record's own namespace if present, else
+  // the one inherited from its parent.
+  const effectiveNamespace = namespace || inheritedNamespace;
 
   // Build description
   let recLabel = `${label} Record`;
@@ -486,7 +491,7 @@ function analyzeRecord(arr, issues, label, depth) {
   if (subrecords.length > 0) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}${subrecords.length} subrecord(s)` });
     for (let si = 0; si < subrecords.length; si++) {
-      analyzeRecord(subrecords[si], issues, `${label}.${si}`, depth + 1);
+      analyzeRecord(subrecords[si], issues, `${label}.${si}`, depth + 1, effectiveNamespace);
     }
   }
 
@@ -494,7 +499,7 @@ function analyzeRecord(arr, issues, label, depth) {
   if (typeId === 0 && hasPayload) {
     issues.push({ level: 'error', text: `${label}: Bundle (typeId=0) MUST NOT carry a payload` });
   }
-  if (typeIdExplicit && typeof typeId === 'number' && typeId % 2 !== 0 && !namespace) {
+  if (typeIdExplicit && typeof typeId === 'number' && typeId % 2 !== 0 && !effectiveNamespace) {
     issues.push({ level: 'error', text: `${label}: odd typeId requires a namespace` });
   }
 
