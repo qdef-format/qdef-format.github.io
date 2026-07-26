@@ -107,7 +107,7 @@ fs.readdirSync(docsDir).forEach(f => {
   if (f.endsWith('.md')) fs.copyFileSync(path.join(docsDir, f), path.join(docsOut, f));
 });
 
-// Build registry page from recfile
+// Build registry page and registry data JS from recfile
 const records = recfile.parse(path.join(ROOT, 'registry.rec'));
 const namespaces = recfile.getFlat(records, 'Namespace');
 const recordTypes = recfile.getFlat(records, 'RecordType');
@@ -182,6 +182,33 @@ registryPage = registryPage.replace('<main class="container content">', '<main c
 
 fs.writeFileSync(path.join(OUT, 'registry.html'), registryPage);
 console.log('Wrote ' + path.join(OUT, 'registry.html'));
+
+// Generate registry-data.js for client-side lookup by the validator
+const nsById = {};
+for (const ns of namespaces) {
+  const rawId = recfile.get(ns, 'NamespaceId');
+  const hex = rawId.replace(/^h'|'$/g, '').toLowerCase();
+  nsById[hex] = {
+    name: recfile.get(ns, 'NamespaceName'),
+    variable: recfile.get(ns, 'VariableName') || null,
+    contact: recfile.get(ns, 'Contact') || null,
+    status: recfile.get(ns, 'Status'),
+    types: {}
+  };
+  const types = recordTypes.filter(rt => recfile.get(rt, 'NamespaceId') === rawId);
+  for (const t of types) {
+    const tid = recfile.get(t, 'ScopedTypeId');
+    nsById[hex].types[tid] = {
+      name: recfile.get(t, 'RecordTypeName') || null,
+      variable: recfile.get(t, 'VariableName') || null,
+      shape: recfile.get(t, 'DataItem') || null,
+      semantics: recfile.get(t, 'Semantics') || null
+    };
+  }
+}
+const registryJs = 'const QDEF_REGISTRY = ' + JSON.stringify(nsById, null, 2) + ';\n';
+fs.writeFileSync(path.join(OUT, 'assets', 'registry-data.js'), registryJs);
+console.log('Wrote ' + path.join(OUT, 'assets', 'registry-data.js'));
 
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 console.log('Done');

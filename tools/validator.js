@@ -267,15 +267,31 @@ function analyzeRecord(arr, issues, label, depth) {
 
   if (namespace) {
     const nsHex = bytesToHex(namespace.value);
+    const nsHexFlat = nsHex.replace(/ /g, '');
     recLabel += ` [namespace: ${nsHex}]`;
     issues.push({ level: 'ok', text: `${recLabel}: namespace present` });
+
+    if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[nsHexFlat]) {
+      const entry = QDEF_REGISTRY[nsHexFlat];
+      const nsLabel = entry.variable || entry.name;
+      issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}→ ${nsLabel} (${entry.name})` });
+    }
   } else {
     issues.push({ level: 'ok', text: `${recLabel}` });
   }
 
   if (typeIdExplicit) {
     const parity = typeId % 2 === 0 ? 'even (global)' : 'odd (scoped)';
-    issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Type ID: ${typeId} (${parity})` });
+    let typeAnnotation = '';
+    if (namespace && typeof QDEF_REGISTRY !== 'undefined') {
+      const nsHexFlat = bytesToHex(namespace.value).replace(/ /g, '');
+      const entry = QDEF_REGISTRY[nsHexFlat];
+      if (entry && entry.types[String(typeId)]) {
+        const rt = entry.types[String(typeId)];
+        typeAnnotation = ` → ${rt.variable || rt.name}`;
+      }
+    }
+    issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Type ID: ${typeId} (${parity})${typeAnnotation}` });
   }
   if (hasMap) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Has field map` });
