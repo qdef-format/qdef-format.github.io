@@ -166,10 +166,16 @@ function fmtCBOR(item) {
     case 'map': {
       let html = `<li><span class="tree-bracket">{</span> <span class="tree-meta">${item.value.length} keys</span><ul>`;
       for (const p of item.value) {
+        const keyAnn = p.key._ann;
+        if (keyAnn) p.key._ann = '';
         html += `<li><span class="key">${fmtInline(p.key)}</span>: ${fmtInline(p.value)}`;
         if (p.key.type === 'uint' && typeof p.key.value === 'number') {
-          const parity = p.key.value % 2 === 0 ? 'critical' : 'optional';
-          html += ` <span class="tree-parity">// ${parity}</span>`;
+          if (keyAnn) {
+            html += ` <span class="tree-parity">// ${escapeHtml(keyAnn)}</span>`;
+          } else {
+            const parity = p.key.value % 2 === 0 ? 'critical' : 'optional';
+            html += ` <span class="tree-parity">// ${parity}</span>`;
+          }
         }
         html += '</li>';
       }
@@ -188,24 +194,39 @@ function fmtCBOR(item) {
 function fmtInline(item) {
   if (!item) return '(null)';
   if (item.type === 'error') return `<span style="color:#721c24">⚠ ${escapeHtml(item.text)}</span>`;
+  const ann = item._ann ? ` <span class="tree-meta">${escapeHtml(item._ann)}</span>` : '';
   switch (item.type) {
-    case 'uint': case 'nint': return `<span class="type-num">${item.value}</span>`;
+    case 'uint': case 'nint': return `<span class="type-num">${item.value}</span>${ann}`;
     case 'bytes':
       const hex = Array.from(item.value).slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('');
       const ellipsis = item.value.length > 8 ? '...' : '';
-      return `<span class="type-bytes">h'${hex}${ellipsis}'</span>`;
+      return `<span class="type-bytes">h'${hex}${ellipsis}'</span>${ann}`;
     case 'tstr':
-      return `<span class="type-str">"${escapeHtml(item.value.slice(0, 40))}"</span>`;
-    case 'simple': return item.value === 21 ? '<span class="type-bool">true</span>' : item.value === 20 ? '<span class="type-bool">false</span>' : `simple(${item.value})`;
-    case 'tag': return `tag(${item.tag})`;
-    case 'array': return `[${item.value.length} items]`;
-    case 'map': return `{${item.value.length} keys}`;
-    default: return `(${item.type})`;
+      return `<span class="type-str">"${escapeHtml(item.value.slice(0, 40))}"</span>${ann}`;
+    case 'simple': return (item.value === 21 ? '<span class="type-bool">true</span>' : item.value === 20 ? '<span class="type-bool">false</span>' : `simple(${item.value})`) + ann;
+    case 'tag': return `tag(${item.tag})${ann}`;
+    case 'array': return `[${item.value.length} items]${ann}`;
+    case 'map': return `{${item.value.length} keys}${ann}`;
+    default: return `(${item.type})${ann}`;
   }
 }
 
 function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function parseShape(shapeStr) {
+  if (!shapeStr) return null;
+  const fields = {};
+  const inner = shapeStr.replace(/^map\s*\{/, '').replace(/\}\s*$/, '').trim();
+  const re = /(\d+)\s*:\s*(\w+)\s*\(([^)]+)\)/g;
+  let m;
+  while ((m = re.exec(inner)) !== null) {
+    const name = m[3].split(',')[0].trim();
+    const opt = m[3].includes('opt');
+    fields[m[1]] = { type: m[2], name, optional: opt };
+  }
+  return Object.keys(fields).length > 0 ? fields : null;
 }
 
 // QDEF validation
@@ -358,6 +379,26 @@ function analyzeRecord(arr, issues, label, depth) {
 
   if (hasMap) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Has field map` });
+    const mapItem = items[namespace ? (typeIdExplicit ? 2 : 1) : (typeIdExplicit ? 1 : 0)];
+    if (mapItem && nsHexFlat && typeof QDEF_REGISTRY !== 'undefined') {
+      const entry = QDEF_REGISTRY[nsHexFlat];
+      const rt = entry && entry.types && entry.types[String(typeId)];
+      const fieldDefs = rt && parseShape(rt.shape);
+      if (fieldDefs) {
+        for (const pair of mapItem.value) {
+          if (pair.key && (pair.key.type === 'uint' || pair.key.type === 'nint')) {
+            const k = String(pair.key.type === 'nint' ? -pair.key.value : pair.key.value);
+            const fd = fieldDefs[k];
+            if (fd) {
+              pair.key._ann = fd.name;
+              if (pair.value && pair.value.type !== 'map' && pair.value.type !== 'array') {
+                pair.value._ann = fd.type;
+              }
+            }
+          }
+        }
+      }
+    }
   }
   if (hasPayload) {
     if (payloadItem) {
