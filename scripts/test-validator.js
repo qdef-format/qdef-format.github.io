@@ -42,7 +42,7 @@ test('Wi-Fi + URL Bundle',
   '51 44 45 46 82 82 18 64 a3 00 6e 4d 79 20 43 6f 66 66 65 65 20 53 68 6f 70 02 68 67 75 65 73 74 31 32 33 04 02 82 0a a1 00 78 1f 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 63 6f 66 66 65 65 2d 6d 65 6e 75', true);
 
 test('TagDrop Route (scoped)',
-  '51 44 45 46 81 83 44 66 3c 1c f2 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01', true);
+  '51 44 45 46 81 83 44 89 d4 14 e0 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01', true);
 
 test('Single URL (global typeId=10)',
   '51 44 45 46 81 82 0a a1 00 78 18 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 71 64 65 66', true);
@@ -75,16 +75,16 @@ test('Random garbage CBOR',
 
 // Verify annotations on TagDrop example
 (function() {
-  const bytes = hexToBytes('51 44 45 46 81 83 44 66 3c 1c f2 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01');
+  const bytes = hexToBytes('51 44 45 46 81 83 44 89 d4 14 e0 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01');
   const r = validateQDEF(bytes);
   assert(r.root._ann && r.root._ann.includes('Bundle'), 'Root array annotated as Bundle');
   const sub = r.root.value[0];
-  assert(sub && sub._ann && sub._ann.includes('Tag Drop'), 'Subrecord annotated with namespace name');
-  assert(sub && sub._ann && sub._ann.includes('Tag Drop Route'), 'Subrecord annotated with type name');
+  assert(sub && sub._ann && sub._ann.includes('TagDrop'), 'Subrecord annotated with namespace name');
+  assert(sub && sub._ann && sub._ann.includes('Content Extension'), 'Subrecord annotated with type name');
   const nsBytes = sub.value[0];
-  assert(nsBytes && nsBytes._ann && nsBytes._ann.includes('Tag Drop'), 'Namespace bytes annotated');
+  assert(nsBytes && nsBytes._ann && nsBytes._ann.includes('TagDrop'), 'Namespace bytes annotated');
   const tid = sub.value[1];
-  assert(tid && tid._ann && tid._ann.includes('Tag Drop Route'), 'TypeId annotated');
+  assert(tid && tid._ann && tid._ann.includes('Content Extension'), 'TypeId annotated');
 })();
 
 console.log(`\n${passed} passed, ${failed} failed`);

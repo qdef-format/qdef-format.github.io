@@ -469,7 +469,7 @@ const EXAMPLES = [
     label: 'TagDrop Route (scoped)',
     hex: '51 44 45 46 ' +
       '81 ' +
-      '  83 44 66 3c 1c f2 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01'
+      '  83 44 89 d4 14 e0 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01'
   },
   {
     label: 'Single URL (global typeId=10)',

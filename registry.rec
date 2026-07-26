@@ -11,11 +11,11 @@
 %mandatory: NamespaceId NamespaceName Contact Status
 %sort: NamespaceId
 
-NamespaceId: h'663c1cf2'
-NamespaceName: com.example.tagdrop-paper
-VariableName: Tag Drop
-Contact: mailto:tagdrop-maintainers@example.com
-RegistryUrl: https://github.com/example/tagdrop/blob/main/QDEF-TYPES.md
+NamespaceId: h'89d414e0'
+NamespaceName: io.github.mofosyne.tagdrop
+VariableName: TagDrop
+Contact: https://github.com/mofosyne/tagdrop
+RegistryUrl: https://github.com/mofosyne/tagdrop/blob/master/SPEC.md
 Reference: https://github.com/mofosyne/tagdrop
 Status: active
 
@@ -23,10 +23,34 @@ Status: active
 %mandatory: NamespaceId ScopedTypeId
 %sort: NamespaceId ScopedTypeId
 
-NamespaceId: h'663c1cf2'
+NamespaceId: h'89d414e0'
 ScopedTypeId: 1
-RecordTypeName: com.example.tagdrop/route
-VariableName: Tag Drop Route
-DataItem: map { 0: bytes (destination), 2: uint (priority) }
-Semantics: Routes payload to a physical delivery target
-Reference: https://github.com/mofosyne/tagdrop/blob/main/SPEC.md#route
+RecordTypeName: io.github.mofosyne.tagdrop/content-extension
+VariableName: Content Extension
+DataItem: map { 3: text (hint), 11: text (description), 13: bytes (collection_id), 15: text (collection_label), 17: text (collection_tag), 19: text (icon), 21: bool (pixel_art), 23: float64 (lat), 25: float64 (lng), 27: float64 (radius_m), 29: bool (prefer_declared_location), 31: text (location_label), 33: bytes (key_material), 35: bool (retain_key), 37: uint (encryption), 39: uint (kdf_alg), 41: bytes (kdf_salt), 43: uint (kdf_iters), 45: uint (signature_algorithm), 47: bytes (signer_id), 49: text (signer_label), 51: bytes (in_reply_to), 53: uint (created_at) }
+Semantics: TagDrop-specific Content fields — hint, location, collection, encryption, signing metadata. Always plain, never wrapped.
+Reference: https://github.com/mofosyne/tagdrop/blob/master/SPEC.md#31-content-extension-type-1
+
+NamespaceId: h'89d414e0'
+ScopedTypeId: 3
+RecordTypeName: io.github.mofosyne.tagdrop/content-signature
+VariableName: Content Signature
+DataItem: map { 3: bytes (signature), 5: bytes (signer_pubkey, opt) }
+Semantics: Signature and signer public key for a signed Content payload. Travels as Media Payload's subrecord, never as a bare top-level Record.
+Reference: https://github.com/mofosyne/tagdrop/blob/master/SPEC.md#31a-media-preview--media-payload-types-14--6
+
+NamespaceId: h'89d414e0'
+ScopedTypeId: 5
+RecordTypeName: io.github.mofosyne.tagdrop/paper-preview
+VariableName: Paper Preview
+DataItem: map { 1: bytes (root_hash), 3: text (hint), 5: text (set), 7: text (slug), 9: text (domain), 11: uint (step), 13: bytes (collection_id), 15: text (collection_label), 17: text (collection_tag), 19: text (icon), 21: float64 (lat), 23: float64 (lng), 25: float64 (radius_m), 27: bool (prefer_declared_location), 29: text (location_label), 31: uint (signature_algorithm), 33: bytes (signer_id), 35: text (signer_label), 37: bytes (in_reply_to), 39: uint (created_at), 43: text (title), 45: text (description), 47: bytes (key_material), 49: bool (retain_key) }
+Semantics: Small, always-plain Paper fields — identity, set/slug/domain, location, collection.
+Reference: https://github.com/mofosyne/tagdrop/blob/master/SPEC.md#32-paper-preview-type-5
+
+NamespaceId: h'89d414e0'
+ScopedTypeId: 7
+RecordTypeName: io.github.mofosyne.tagdrop/paper-body
+VariableName: Paper Body
+DataItem: map { 1: bytes (files), 3: bytes (related), 5: bytes (signature, opt), 7: bytes (signer_pubkey, opt) }
+Semantics: files[]/related[] directory data, plus large signature fields. Optionally Compress-wrapped and/or Split-wrapped.
+Reference: https://github.com/mofosyne/tagdrop/blob/master/SPEC.md#34-paper-body-type-7

@@ -12,11 +12,14 @@ function parse(filePath) {
 
     if (line === '' || line.startsWith('#') || line.startsWith('%rec:') || line.startsWith('%mandatory:') || line.startsWith('%sort:')) {
       if (line.startsWith('%rec:')) {
-        if (current) {
+        if (current && Object.keys(fields).length > 0) {
           records.push({ type: current, fields });
-          fields = {};
         }
+        fields = {};
         current = line.slice(5).trim();
+      } else if (line === '' && current && Object.keys(fields).length > 0) {
+        records.push({ type: current, fields });
+        fields = {};
       }
       continue;
     }
