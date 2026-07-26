@@ -238,6 +238,18 @@ const COMMON_FIELDS = {
   '-15': { type: 'tstr', name: 'Filename' },
 };
 
+const STANDARD_TYPE_NAMES = {
+  '0': 'Bundle',
+  '2': 'Split',
+  '4': 'Encrypt',
+  '6': 'Media Payload',
+  '8': 'Compress',
+  '10': 'Open/Hint URI',
+  '12': 'App Route',
+  '14': 'Media Preview',
+  '16': 'Signature',
+};
+
 const STANDARD_SHAPES = {
   '0': {
     '3': { type: 'tstr', name: 'Hint Name', optional: true },
@@ -436,9 +448,12 @@ function analyzeRecord(arr, issues, label, depth) {
       if (entry && entry.types[String(typeId)]) {
         const rt = entry.types[String(typeId)];
         typeName = rt.variable || rt.name;
-        typeAnn += ` (${typeName})`;
       }
     }
+    if (!typeName && STANDARD_TYPE_NAMES[String(typeId)]) {
+      typeName = STANDARD_TYPE_NAMES[String(typeId)];
+    }
+    if (typeName) typeAnn += ` (${typeName})`;
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Type ID: ${typeId} (${parity})${typeName ? ' → ' + typeName : ''}` });
     annotateItem(tidItem, typeAnn);
     if (typeName && recordAnn) recordAnn += ` — ${typeName}`;
