@@ -35,7 +35,9 @@
       <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
         <button class="btn" onclick="validateQDEPayload(document.getElementById('hex-input').value)">Validate</button>
         <button class="btn" style="background:#6c757d" onclick="document.getElementById('hex-input').value='';document.getElementById('validator-output').classList.remove('visible')">Clear</button>
-        <button class="btn" style="background:#6c757d" onclick="loadExample()">Load Example</button>
+        <select id="example-select" onchange="loadExample()" style="padding:0.5rem 0.75rem;border:1.5px solid var(--border);border-radius:var(--radius);font-size:0.9rem;background:var(--surface);color:var(--text);cursor:pointer">
+          <option value="">Load an example…</option>
+        </select>
       </div>
     </div>
 

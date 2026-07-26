@@ -390,20 +390,63 @@ function validateQDEPayload(hexInput) {
   output.classList.add('visible');
 }
 
-// Copy from example
-function loadExample() {
-  const example = '51 44 45 46 ' +
-    '82 ' +
-    '  82 ' +
-    '    18 64 ' +
-    '    a3 ' +
-    '      00 6e 4d 79 20 43 6f 66 66 65 65 20 53 68 6f 70 ' +
-    '      02 68 67 75 65 73 74 31 32 33 ' +
-    '      04 02 ' +
-    '  82 ' +
-    '    0a ' +
-    '    a1 ' +
-    '      00 78 1f 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 63 6f 66 66 65 65 2d 6d 65 6e 75';
-  document.getElementById('hex-input').value = example;
-  validateQDEPayload(example);
+// Example payloads
+const EXAMPLES = [
+  {
+    label: 'Wi-Fi + URL Bundle',
+    hex: '51 44 45 46 ' +
+      '82 ' +
+      '  82 ' +
+      '    18 64 ' +
+      '    a3 ' +
+      '      00 6e 4d 79 20 43 6f 66 66 65 65 20 53 68 6f 70 ' +
+      '      02 68 67 75 65 73 74 31 32 33 ' +
+      '      04 02 ' +
+      '  82 ' +
+      '    0a ' +
+      '    a1 ' +
+      '      00 78 1f 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 63 6f 66 66 65 65 2d 6d 65 6e 75'
+  },
+  {
+    label: 'TagDrop Route (scoped)',
+    hex: '51 44 45 46 ' +
+      '81 ' +
+      '  83 44 66 3c 1c f2 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01'
+  },
+  {
+    label: 'Single URL (global typeId=10)',
+    hex: '51 44 45 46 ' +
+      '81 ' +
+      '  82 0a a1 00 78 1b 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 71 64 65 66'
+  },
+  {
+    label: 'Empty Bundle (typeId=0, no subrecords)',
+    hex: '51 44 45 46 80'
+  },
+  {
+    label: 'Invalid: no magic header',
+    hex: '00 01 02 03 81 01'
+  }
+];
+
+function populateExamples() {
+  const sel = document.getElementById('example-select');
+  for (const ex of EXAMPLES) {
+    const opt = document.createElement('option');
+    opt.value = ex.label;
+    opt.textContent = ex.label;
+    sel.appendChild(opt);
+  }
 }
+
+function loadExample() {
+  const sel = document.getElementById('example-select');
+  const label = sel.value;
+  if (!label) return;
+  const ex = EXAMPLES.find(e => e.label === label);
+  if (!ex) return;
+  document.getElementById('hex-input').value = ex.hex;
+  validateQDEPayload(ex.hex);
+}
+
+populateExamples();
