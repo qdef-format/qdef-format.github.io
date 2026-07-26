@@ -19,9 +19,9 @@ rebuild: clean build
 check-links: build
     grep -rnP 'href="(?!https?://)[^"]*"' _site/*.html _site/tools/*.html | grep -v 'assets/' || true
 
-# Run validator unit tests
-test:
-    node -e "const fs=require('fs');eval(fs.readFileSync('tools/validator.js','utf8'));const r=validateQDEF(hexToBytes('51 44 45 46 81 82 18 64 a1 00 64 74 65 73 74'));process.exit(r.valid?0:1)" && echo "Validator: OK"
+# Build and run validator tests
+test: build
+    node scripts/test-validator.js
 
 # Export logo PNGs from SVG (requires Inkscape)
 logo-export:

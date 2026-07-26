@@ -30,6 +30,9 @@ jobs:
       - name: Build site into _site/
         run: node scripts/build.js
 
+      - name: Run validator tests
+        run: node scripts/test-validator.js
+
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
