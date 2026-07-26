@@ -11,6 +11,10 @@ function hexToBytes(s) {
   return bytes;
 }
 
+function majorName(m) {
+  return ['uint','nint','bytes','tstr','array','map','tag','simple'][m] || 'unknown';
+}
+
 function bytesToHex(bytes) {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
 }
@@ -47,68 +51,92 @@ class CBORReader {
     throw new Error(`Unsupported additional info: ${addInfo}`);
   }
 
+  tryReadArg(addInfo) {
+    try { return this.readArg(addInfo); } catch (e) { return { error: e.message }; }
+  }
+
   readItem() {
     if (this.offset >= this.bytes.length) return null;
     const start = this.offset;
-    const byte = this.readByte();
-    const major = byte >> 5;
-    const addInfo = byte & 0x1f;
+    let byte, major, addInfo, arg;
+    try { byte = this.readByte(); } catch (e) {
+      return { type: 'error', text: `truncated at byte ${start}` };
+    }
+    major = byte >> 5;
+    addInfo = byte & 0x1f;
 
-    const arg = addInfo === 31 ? -1 : this.readArg(addInfo);
+    const rawArg = this.tryReadArg(addInfo);
+    if (rawArg.error) return { type: 'error', text: `truncated reading ${majorName(major)} argument at byte ${start}` };
+    arg = addInfo === 31 ? -1 : rawArg;
 
-    switch (major) {
-      case 0: return { type: 'uint', value: typeof arg === 'bigint' ? arg : Number(arg), start, end: this.offset };
-      case 1: return { type: 'nint', value: typeof arg === 'bigint' ? -1n - arg : -1 - Number(arg), start, end: this.offset };
-      case 2: { // byte string
-        if (arg < 0) throw new Error('Indefinite-length byte strings not supported');
-        const raw = this.readLen(arg);
-        return { type: 'bytes', value: raw, start, end: this.offset };
-      }
-      case 3: { // text string
-        if (arg < 0) throw new Error('Indefinite-length text strings not supported');
-        const raw = this.readLen(arg);
-        const decoder = new TextDecoder();
-        return { type: 'tstr', value: decoder.decode(raw), start, end: this.offset };
-      }
-      case 4: { // array
-        const items = [];
-        const count = typeof arg === 'bigint' ? Number(arg) : arg;
-        if (count < 0) throw new Error('Indefinite-length arrays not supported');
-        for (let i = 0; i < count; i++) items.push(this.readItem());
-        return { type: 'array', value: items, start, end: this.offset };
-      }
-      case 5: { // map
-        const pairs = [];
-        const count = typeof arg === 'bigint' ? Number(arg) : arg;
-        if (count < 0) throw new Error('Indefinite-length maps not supported');
-        for (let i = 0; i < count; i++) {
-          const k = this.readItem();
-          const v = this.readItem();
-          pairs.push({ key: k, value: v });
+    try {
+      switch (major) {
+        case 0: return { type: 'uint', value: typeof arg === 'bigint' ? arg : Number(arg), start, end: this.offset };
+        case 1: return { type: 'nint', value: typeof arg === 'bigint' ? -1n - arg : -1 - Number(arg), start, end: this.offset };
+        case 2: {
+          if (arg < 0) return { type: 'error', text: 'indefinite-length byte strings not supported', start };
+          try { return { type: 'bytes', value: this.readLen(arg), start, end: this.offset }; }
+          catch (e) { return { type: 'error', text: `truncated byte string at byte ${start}`, start }; }
         }
-        return { type: 'map', value: pairs, start, end: this.offset };
+        case 3: {
+          if (arg < 0) return { type: 'error', text: 'indefinite-length text strings not supported', start };
+          try {
+            const raw = this.readLen(arg);
+            return { type: 'tstr', value: new TextDecoder().decode(raw), start, end: this.offset };
+          } catch (e) { return { type: 'error', text: `truncated text string at byte ${start}`, start }; }
+        }
+        case 4: {
+          if (arg < 0) return { type: 'error', text: 'indefinite-length arrays not supported', start };
+          const items = [];
+          const count = typeof arg === 'bigint' ? Number(arg) : arg;
+          for (let i = 0; i < count; i++) {
+            const item = this.readItem();
+            if (!item) { items.push({ type: 'error', text: `array item ${i} truncated` }); break; }
+            if (item.type === 'error') { items.push(item); break; }
+            items.push(item);
+          }
+          return { type: 'array', value: items, start, end: this.offset };
+        }
+        case 5: {
+          if (arg < 0) return { type: 'error', text: 'indefinite-length maps not supported', start };
+          const pairs = [];
+          const count = typeof arg === 'bigint' ? Number(arg) : arg;
+          for (let i = 0; i < count; i++) {
+            const k = this.readItem();
+            if (!k) { pairs.push({ key: { type: 'error', text: `map key ${i} truncated` }, value: null }); break; }
+            if (k.type === 'error') { pairs.push({ key: k, value: null }); break; }
+            const v = this.readItem();
+            if (!v) { pairs.push({ key: k, value: { type: 'error', text: `map value ${i} truncated` } }); break; }
+            if (v.type === 'error') { pairs.push({ key: k, value: v }); break; }
+            pairs.push({ key: k, value: v });
+          }
+          return { type: 'map', value: pairs, start, end: this.offset };
+        }
+        case 6: {
+          const item = this.readItem();
+          if (!item || item.type === 'error') return { type: 'tag', tag: Number(arg), value: item || { type: 'error', text: 'truncated tag content' }, start, end: this.offset };
+          return { type: 'tag', tag: Number(arg), value: item, start, end: this.offset };
+        }
+        case 7: {
+          const val = typeof arg === 'bigint' ? Number(arg) : arg;
+          if (addInfo <= 23 || addInfo === 24) return { type: 'simple', value: val, start, end: this.offset };
+          if (addInfo === 25) return { type: 'float16', value: val, start, end: this.offset };
+          if (addInfo === 26) return { type: 'float32', value: val, start, end: this.offset };
+          if (addInfo === 27) return { type: 'float64', value: val, start, end: this.offset };
+          return { type: 'error', text: `unsupported simple value ${addInfo} at byte ${start}` };
+        }
+        default:
+          return { type: 'error', text: `unsupported major type ${major} at byte ${start}` };
       }
-      case 6: { // tag
-        const tagNum = typeof arg === 'bigint' ? Number(arg) : arg;
-        const item = this.readItem();
-        return { type: 'tag', tag: tagNum, value: item, start, end: this.offset };
-      }
-      case 7: { // simple/float
-        const val = typeof arg === 'bigint' ? Number(arg) : arg;
-        if (addInfo <= 23 || addInfo === 24) return { type: 'simple', value: val, start, end: this.offset };
-        if (addInfo === 25) return { type: 'float16', value: val, start, end: this.offset };
-        if (addInfo === 26) return { type: 'float32', value: val, start, end: this.offset };
-        if (addInfo === 27) return { type: 'float64', value: val, start, end: this.offset };
-        throw new Error(`Unsupported simple value: ${addInfo}`);
-      }
-      default:
-        throw new Error(`Unsupported major type: ${major}`);
+    } catch (e) {
+      return { type: 'error', text: `parse error at byte ${start}: ${e.message}` };
     }
   }
 }
 
 function fmtCBOR(item) {
   if (!item) return '<li>(null)</li>';
+  if (item.type === 'error') return `<li style="color:#721c24">⚠ ${escapeHtml(item.text)}</li>`;
   switch (item.type) {
     case 'uint':
     case 'nint':
@@ -154,6 +182,7 @@ function fmtCBOR(item) {
 
 function fmtInline(item) {
   if (!item) return '(null)';
+  if (item.type === 'error') return `<span style="color:#721c24">⚠ ${escapeHtml(item.text)}</span>`;
   switch (item.type) {
     case 'uint': case 'nint': return `<span class="type-num">${item.value}</span>`;
     case 'bytes':
@@ -178,37 +207,42 @@ function escapeHtml(s) {
 function validateQDEF(bytes) {
   const issues = [];
 
-  // Check magic
+  // Check magic — warn, don't bail
+  let magicOk = false;
   if (bytes.length < 4) {
-    return { valid: false, issues: ['Payload too short: need at least 4 bytes for magic header'] };
-  }
-  const magic = bytes.slice(0, 4);
-  if (magic[0] !== QDEF_MAGIC[0] || magic[1] !== QDEF_MAGIC[1] || magic[2] !== QDEF_MAGIC[2] || magic[3] !== QDEF_MAGIC[3]) {
-    return { valid: false, issues: [`Invalid magic header: expected 51 44 45 46 ("QDEF"), got ${bytesToHex(magic)}`] };
-  }
-  issues.push({ level: 'ok', text: `Magic header: 51 44 45 46 ("QDEF")` });
-
-  // Parse root Record
-  const reader = new CBORReader(bytes.slice(4));
-  let root;
-  try {
-    root = reader.readItem();
-  } catch (e) {
-    return { valid: false, issues: [...issues, { level: 'error', text: `Failed to parse root CBOR: ${e.message}` }] };
+    issues.push({ level: 'error', text: `Payload too short: ${bytes.length} byte(s), need at least 4` });
+  } else {
+    const magic = bytes.slice(0, 4);
+    magicOk = magic[0] === QDEF_MAGIC[0] && magic[1] === QDEF_MAGIC[1] && magic[2] === QDEF_MAGIC[2] && magic[3] === QDEF_MAGIC[3];
+    if (magicOk) {
+      issues.push({ level: 'ok', text: `Magic header: 51 44 45 46 ("QDEF")` });
+    } else {
+      issues.push({ level: 'warn', text: `Expected QDEF magic (51 44 45 46), got ${bytesToHex(magic)} — parsing raw CBOR` });
+    }
   }
 
-  // Root must be an array
-  if (!root || root.type !== 'array') {
-    return { valid: false, issues: [...issues, { level: 'error', text: `Root Record must be a CBOR array, got ${root ? root.type : 'nothing'}` }] };
-  }
-  issues.push({ level: 'ok', text: `Root is a CBOR array with ${root.value.length} item(s)` });
+  // Try to parse root CBOR even without valid magic
+  let root = null;
+  const cborStart = bytes.length >= 4 ? 4 : 0;
+  const reader = new CBORReader(bytes.slice(cborStart));
+  root = reader.readItem();
 
-  // Analyze Record structure
-  analyzeRecord(root, issues, 'Root', 0);
+  if (root && root.type === 'error') {
+    issues.push({ level: 'error', text: `Parse error: ${root.text}` });
+  } else if (root && root.type !== 'array') {
+    issues.push({ level: 'warn', text: `Root is a CBOR ${majorName(root.type)} — expected an array for QDEF Records` });
+    root = null;
+  } else if (root && root.type === 'array') {
+    issues.push({ level: 'ok', text: `Root is a CBOR array with ${root.value.length} item(s)` });
+    // Analyze Record structure
+    analyzeRecord(root, issues, 'Root', 0);
+  } else if (!root) {
+    issues.push({ level: 'warn', text: `No CBOR data found after magic header` });
+  }
 
   // Check remaining bytes
-  if (reader.offset < bytes.length - 4) {
-    issues.push({ level: 'warn', text: `Trailing bytes after root Record: ${bytes.length - 4 - reader.offset} byte(s) unaccounted for` });
+  if (reader && reader.offset < bytes.length - cborStart) {
+    issues.push({ level: 'warn', text: `${bytes.length - cborStart - reader.offset} byte(s) unparsed after root Record` });
   }
 
   return { valid: issues.filter(i => i.level === 'error').length === 0, root, issues };
