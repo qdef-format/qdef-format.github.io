@@ -1,0 +1,32 @@
+# QDEF Namespace Registry
+#
+# This file is the canonical registry of QDEF namespaces and their
+# Record Types.  It is written in the GNU recfile format so it is both
+# human-readable and machine-parseable.
+#
+# To submit a new registration, open a pull request that appends a
+# Namespace record (and optional RecordType records) to this file.
+
+%rec: Namespace
+%mandatory: NamespaceId NamespaceName Contact Status
+%sort: NamespaceId
+
+NamespaceId: h'663c1cf2'
+NamespaceName: com.example.tagdrop-paper
+VariableName: Tag Drop
+Contact: mailto:tagdrop-maintainers@example.com
+RegistryUrl: https://github.com/example/tagdrop/blob/main/QDEF-TYPES.md
+Reference: https://github.com/mofosyne/tagdrop
+Status: active
+
+%rec: RecordType
+%mandatory: NamespaceId ScopedTypeId
+%sort: NamespaceId ScopedTypeId
+
+NamespaceId: h'663c1cf2'
+ScopedTypeId: 1
+RecordTypeName: com.example.tagdrop/route
+VariableName: Tag Drop Route
+DataItem: map { 0: bytes (destination), 2: uint (priority) }
+Semantics: Routes payload to a physical delivery target
+Reference: https://github.com/mofosyne/tagdrop/blob/main/SPEC.md#route

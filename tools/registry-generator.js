@@ -99,42 +99,31 @@ function generate() {
   const types = getRecordTypes();
   const lines = [];
 
-  // Header
-  lines.push('QDEF Namespace Registration');
-  lines.push('='.repeat(28));
+  // Namespace record
+  lines.push('%rec: Namespace');
   lines.push('');
-
-  // Namespace
-  lines.push('Namespace ID:               ' + "h'" + val('ns-id').replace(/\s/g, '') + "'");
-  lines.push('Namespace Name:             ' + val('ns-name').trim());
-  if (val('ns-variable').trim()) lines.push('Variable Name:              ' + val('ns-variable').trim());
-  lines.push('Point of Contact:           ' + val('ns-contact').trim());
-  if (val('ns-registry-url').trim()) lines.push('Registry URL:               ' + val('ns-registry-url').trim());
-  if (val('ns-ref').trim()) lines.push('Reference:                  ' + val('ns-ref').trim());
-  lines.push('Status:                     ' + val('ns-status'));
+  lines.push("NamespaceId: h'" + val('ns-id').replace(/\s/g, '') + "'");
+  lines.push('NamespaceName: ' + val('ns-name').trim());
+  if (val('ns-variable').trim()) lines.push('VariableName: ' + val('ns-variable').trim());
+  lines.push('Contact: ' + val('ns-contact').trim());
+  if (val('ns-registry-url').trim()) lines.push('RegistryUrl: ' + val('ns-registry-url').trim());
+  if (val('ns-ref').trim()) lines.push('Reference: ' + val('ns-ref').trim());
+  lines.push('Status: ' + val('ns-status'));
   lines.push('');
 
   // Record Types
-  if (types.length > 0) {
-    lines.push('Record Types');
-    lines.push('-'.repeat(14));
+  types.forEach((t, i) => {
+    lines.push('%rec: RecordType');
     lines.push('');
-
-    types.forEach(t => {
-      lines.push('Scoped Type ID:             ' + t.typeId);
-      if (t.name) lines.push('Record Type Name:           ' + t.name);
-      if (t.variable) lines.push('Variable Name:              ' + t.variable);
-      if (t.shape) lines.push('Data item:                  ' + t.shape);
-      if (t.semantics) lines.push('Semantics:                  ' + t.semantics);
-      if (t.ref) lines.push('Reference:                  ' + t.ref);
-      lines.push('');
-    });
-  }
-
-  // Machine-readable note
-  lines.push('---');
-  lines.push('Format: QDEF Registry v1');
-  if (val('ns-registry-url').trim()) lines.push('Poll URL: ' + val('ns-registry-url').trim());
+    lines.push("NamespaceId: h'" + val('ns-id').replace(/\s/g, '') + "'");
+    lines.push('ScopedTypeId: ' + t.typeId);
+    if (t.name) lines.push('RecordTypeName: ' + t.name);
+    if (t.variable) lines.push('VariableName: ' + t.variable);
+    if (t.shape) lines.push('DataItem: ' + t.shape);
+    if (t.semantics) lines.push('Semantics: ' + t.semantics);
+    if (t.ref) lines.push('Reference: ' + t.ref);
+    if (i < types.length - 1) lines.push('');
+  });
 
   text.textContent = lines.join('\n');
   output.classList.add('visible');

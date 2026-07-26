@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { marked } = require('marked');
+const recfile = require('./recfile');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, '_site');
@@ -105,6 +106,82 @@ fs.mkdirSync(docsOut, { recursive: true });
 fs.readdirSync(docsDir).forEach(f => {
   if (f.endsWith('.md')) fs.copyFileSync(path.join(docsDir, f), path.join(docsOut, f));
 });
+
+// Build registry page from recfile
+const records = recfile.parse(path.join(ROOT, 'registry.rec'));
+const namespaces = recfile.getFlat(records, 'Namespace');
+const recordTypes = recfile.getFlat(records, 'RecordType');
+
+function byNamespace(rt) {
+  return recfile.get(rt, 'NamespaceId');
+}
+
+let registryBody = '';
+registryBody += '<p>This is the canonical registry of QDEF namespaces and their Record Types. '
+  + 'To submit a new registration, open a pull request that adds a Namespace entry '
+  + 'to <a href="https://github.com/qdef-format/qdef/blob/main/registry.rec"><code>registry.rec</code></a> '
+  + 'or use the <a href="tools/registry-generator.html">Registry Generator</a> to draft one.</p>';
+
+if (namespaces.length === 0) {
+  registryBody += '<p><em>No namespaces registered yet.</em></p>';
+} else {
+  for (const ns of namespaces) {
+    const nsId = recfile.get(ns, 'NamespaceId');
+    const nsName = recfile.get(ns, 'NamespaceName');
+    const variable = recfile.get(ns, 'VariableName');
+    const contact = recfile.get(ns, 'Contact');
+    const status = recfile.get(ns, 'Status');
+    const regUrl = recfile.get(ns, 'RegistryUrl');
+    const ref = recfile.get(ns, 'Reference');
+
+    registryBody += '<section style="margin-bottom:2rem">';
+    registryBody += `<h2 id="${slugify(nsName)}">${variable || nsName}</h2>`;
+    registryBody += '<table>';
+    registryBody += `<tr><td style="width:180px"><strong>Namespace ID</strong></td><td><code>${nsId}</code></td></tr>`;
+    registryBody += `<tr><td><strong>Namespace Name</strong></td><td><code>${nsName}</code></td></tr>`;
+    if (contact) registryBody += `<tr><td><strong>Contact</strong></td><td>${contact.includes('@') ? `<a href="${contact}">${contact}</a>` : contact}</td></tr>`;
+    if (regUrl) registryBody += `<tr><td><strong>Registry URL</strong></td><td><a href="${regUrl}">${regUrl}</a></td></tr>`;
+    if (ref) registryBody += `<tr><td><strong>Reference</strong></td><td><a href="${ref}">${ref}</a></td></tr>`;
+    registryBody += `<tr><td><strong>Status</strong></td><td>${status}</td></tr>`;
+    registryBody += '</table>';
+
+    const types = recordTypes.filter(rt => recfile.get(rt, 'NamespaceId') === nsId);
+    if (types.length > 0) {
+      registryBody += '<h3>Record Types</h3>';
+      registryBody += '<table><thead><tr>'
+        + '<th>Scoped Type ID</th><th>Name</th><th>Data Item</th><th>Semantics</th><th>Reference</th>'
+        + '</tr></thead><tbody>';
+      for (const t of types) {
+        const tid = recfile.get(t, 'ScopedTypeId');
+        const tname = recfile.get(t, 'RecordTypeName') || '';
+        const tvariable = recfile.get(t, 'VariableName') || '';
+        const shape = recfile.get(t, 'DataItem') || '';
+        const semantics = recfile.get(t, 'Semantics') || '';
+        const tref = recfile.get(t, 'Reference') || '';
+        registryBody += '<tr>'
+          + `<td><code>${tid}</code></td>`
+          + `<td>${tvariable ? `${tvariable}<br>` : ''}<code style="font-size:0.8rem">${tname}</code></td>`
+          + `<td><code style="font-size:0.8rem">${shape}</code></td>`
+          + `<td>${semantics}</td>`
+          + `<td>${tref ? `<a href="${tref}">link</a>` : ''}</td>`
+          + '</tr>';
+      }
+      registryBody += '</tbody></table>';
+    }
+
+    registryBody += '</section>';
+  }
+}
+
+let registryPage = shell
+  .replace('__TITLE__', 'Registry')
+  .replace('__DESCRIPTION__', 'QDEF Namespace Registry — registered namespaces and Record Types.')
+  .replace('__CONTENT__', registryBody);
+
+registryPage = registryPage.replace('<main class="container content">', '<main class="container">\n<h1>QDEF Namespace Registry</h1>');
+
+fs.writeFileSync(path.join(OUT, 'registry.html'), registryPage);
+console.log('Wrote ' + path.join(OUT, 'registry.html'));
 
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 console.log('Done');
