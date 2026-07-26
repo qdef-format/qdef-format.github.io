@@ -137,21 +137,26 @@ class CBORReader {
 function fmtCBOR(item) {
   if (!item) return '<li>(null)</li>';
   if (item.type === 'error') return `<li style="color:#721c24">⚠ ${escapeHtml(item.text)}</li>`;
+
+  function ann(item) {
+    return item && item._ann ? ` <span class="tree-parity">// ${escapeHtml(item._ann)}</span>` : '';
+  }
+
   switch (item.type) {
     case 'uint':
     case 'nint':
-      return `<li><span class="type-num">${item.value}</span></li>`;
+      return `<li><span class="type-num">${item.value}</span>${ann(item)}</li>`;
     case 'bytes': {
       const hex = Array.from(item.value).slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
       const ellipsis = item.value.length > 16 ? '...' : '';
-      return `<li><span class="type-bytes">h'${hex}${ellipsis}'</span> <span class="tree-meta">(${item.value.length} B)</span></li>`;
+      return `<li><span class="type-bytes">h'${hex}${ellipsis}'</span> <span class="tree-meta">(${item.value.length} B)</span>${ann(item)}</li>`;
     }
     case 'tstr': {
       const s = item.value.length > 64 ? item.value.slice(0, 64) + '...' : item.value;
-      return `<li><span class="type-str">"${escapeHtml(s)}"</span></li>`;
+      return `<li><span class="type-str">"${escapeHtml(s)}"</span>${ann(item)}</li>`;
     }
     case 'array': {
-      let html = `<li><span class="tree-bracket">[</span> <span class="tree-meta">${item.value.length} items</span><ul>`;
+      let html = `<li><span class="tree-bracket">[</span> <span class="tree-meta">${item.value.length} items</span>${ann(item)}<ul>`;
       for (const v of item.value) {
         html += fmtCBOR(v);
       }
@@ -248,6 +253,10 @@ function validateQDEF(bytes) {
   return { valid: issues.filter(i => i.level === 'error').length === 0, root, issues };
 }
 
+function annotateItem(item, text) {
+  if (item) item._ann = text;
+}
+
 function analyzeRecord(arr, issues, label, depth) {
   if (depth > 10) {
     issues.push({ level: 'error', text: `${label}: nesting depth exceeds 10` });
@@ -259,18 +268,19 @@ function analyzeRecord(arr, issues, label, depth) {
 
   // Determine typeId and namespace
   let namespace = null;
-  let typeId = 0; // default Bundle
+  let typeId = 0;
   let typeIdExplicit = false;
+  let tidItem = null;
 
-  const nsMatch = idx < items.length && items[idx].type === 'bytes';
+  const nsMatch = idx < items.length && items[idx].type === 'bytes' && items[idx].value.length <= 8;
   if (nsMatch) {
     namespace = items[idx];
     idx++;
   }
 
-  const tidMatch = idx < items.length && (items[idx].type === 'uint' || items[idx].type === 'nint');
-  if (tidMatch) {
-    typeId = items[idx].type === 'uint' ? items[idx].value : items[idx].value;
+  if (idx < items.length && (items[idx].type === 'uint' || items[idx].type === 'nint')) {
+    tidItem = items[idx];
+    typeId = tidItem.type === 'uint' ? tidItem.value : tidItem.value;
     typeIdExplicit = true;
     idx++;
   }
@@ -281,8 +291,10 @@ function analyzeRecord(arr, issues, label, depth) {
 
   // Check payload
   let hasPayload = false;
+  let payloadItem = null;
   if (idx < items.length && items[idx].type !== 'array') {
     hasPayload = true;
+    payloadItem = items[idx];
     idx++;
   }
 
@@ -291,53 +303,65 @@ function analyzeRecord(arr, issues, label, depth) {
 
   // Build description
   let recLabel = `${label} Record`;
+  let recordAnn = '';
   if (typeId === 0 && !typeIdExplicit) {
     recLabel += ` (Bundle, implicit typeId=0)`;
+    recordAnn = `Bundle (implicit typeId=0)`;
   } else if (typeId === 0 && typeIdExplicit) {
     recLabel += ` (typeId=0, Bundle)`;
+    recordAnn = `Bundle (typeId=0)`;
   } else {
     recLabel += ` (typeId=${typeId})`;
+    recordAnn = `Record (typeId=${typeId})`;
   }
 
+  let nsHexFlat = null;
   if (namespace) {
     const nsHex = bytesToHex(namespace.value);
-    const nsHexFlat = nsHex.replace(/ /g, '');
+    nsHexFlat = nsHex.replace(/ /g, '');
     recLabel += ` [namespace: ${nsHex}]`;
     issues.push({ level: 'ok', text: `${recLabel}: namespace present` });
 
+    let nsAnn = `namespace: ${nsHexFlat}`;
+    let nsName = null;
     if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[nsHexFlat]) {
       const entry = QDEF_REGISTRY[nsHexFlat];
-      const nsLabel = entry.variable || entry.name;
-      issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}→ ${nsLabel} (${entry.name})` });
+      nsName = entry.variable || entry.name;
+      nsAnn += ` (${nsName})`;
+      issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}→ ${nsName} (${entry.name})` });
     }
+    annotateItem(namespace, nsAnn);
+
+    if (recordAnn) recordAnn = `${nsName || nsHexFlat} ${recordAnn}`;
+    else recordAnn = `${nsName || nsHexFlat}`;
   } else {
     issues.push({ level: 'ok', text: `${recLabel}` });
   }
 
   if (typeIdExplicit) {
     const parity = typeId % 2 === 0 ? 'even (global)' : 'odd (scoped)';
-    let typeAnnotation = '';
-    if (namespace && typeof QDEF_REGISTRY !== 'undefined') {
-      const nsHexFlat = bytesToHex(namespace.value).replace(/ /g, '');
+    let typeAnn = `typeId=${typeId}`;
+    let typeName = null;
+    if (nsHexFlat && typeof QDEF_REGISTRY !== 'undefined') {
       const entry = QDEF_REGISTRY[nsHexFlat];
       if (entry && entry.types[String(typeId)]) {
         const rt = entry.types[String(typeId)];
-        typeAnnotation = ` → ${rt.variable || rt.name}`;
+        typeName = rt.variable || rt.name;
+        typeAnn += ` (${typeName})`;
       }
     }
-    issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Type ID: ${typeId} (${parity})${typeAnnotation}` });
+    issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Type ID: ${typeId} (${parity})${typeName ? ' → ' + typeName : ''}` });
+    annotateItem(tidItem, typeAnn);
+    if (typeName && recordAnn) recordAnn += ` — ${typeName}`;
   }
+  if (recordAnn) annotateItem(arr, recordAnn);
+
   if (hasMap) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Has field map` });
   }
   if (hasPayload) {
-    let payloadIdx = 0;
-    if (namespace) payloadIdx++;
-    if (typeIdExplicit) payloadIdx++;
-    if (hasMap) payloadIdx++;
-    const payload = items[payloadIdx];
-    if (payload && payload.type !== 'array') {
-      issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Has payload: ${fmtInlineShort(payload)}` });
+    if (payloadItem) {
+      issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Has payload: ${fmtInlineShort(payloadItem)}` });
     }
   }
   if (subrecords.length > 0) {
