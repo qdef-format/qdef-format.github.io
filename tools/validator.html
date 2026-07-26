@@ -7,6 +7,31 @@
   <meta name="description" content="Validate and inspect hex-encoded QDEF payloads — check magic header, parse CBOR, verify Record structure.">
   <link rel="icon" href="../assets/logo.png" type="image/png">
   <link rel="stylesheet" href="../assets/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.0/dist/iife/reader/index.js"></script>
+  <style>
+    #scanOverlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    #scanOverlay.hidden { display: none; }
+    #scanOverlay .scan-box {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      padding: 16px; color: #fff; width: min(480px, 96vw);
+    }
+    #scanOverlay video { width: 100%; max-height: 50vh; object-fit: cover;
+                         border-radius: 8px; background: #000; }
+    #scanOverlay canvas { display: none; }
+    #scanStatus { font-size: 0.9rem; color: #ccc; text-align: center; margin: 0; }
+
+    .qr-dropzone {
+      margin-top: 10px; padding: 10px; border: 2px dashed var(--border);
+      border-radius: var(--radius); font-size: 0.85rem; color: var(--text-muted);
+      cursor: pointer; text-align: center; transition: border-color .15s, background-color .15s;
+    }
+    .qr-dropzone.dragover { border-color: var(--accent); background: var(--accent-bg, #f0f0ff); }
+    .qr-dropzone label { cursor: pointer; display: block; }
+    .qr-dropzone input[type="file"] { display: none; }
+  </style>
 </head>
 <body>
   <header>
@@ -25,9 +50,18 @@
     </div>
   </header>
 
+  <div id="scanOverlay" class="hidden">
+    <div class="scan-box">
+      <video id="scanVideo" autoplay playsinline muted></video>
+      <canvas id="scanCanvas"></canvas>
+      <p id="scanStatus">Point camera at a QDEF QR code.</p>
+      <button class="btn" style="background:#6c757d" id="btnStopScan">Cancel</button>
+    </div>
+  </div>
+
   <main class="container">
-    <h1>QDEF Hex Validator</h1>
-    <p>Paste a hex-encoded QDEF payload below to verify its structure. Spaces and <code>0x</code> prefixes are optional.</p>
+    <h1>QDEF Validator</h1>
+    <p>Paste hex, scan a QR code, or drop a QR image to validate a QDEF payload.</p>
 
     <div class="validator-section">
       <label for="hex-input"><strong>Hex-encoded payload:</strong></label>
@@ -35,9 +69,16 @@
       <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
         <button class="btn" onclick="validateQDEPayload(document.getElementById('hex-input').value)">Validate</button>
         <button class="btn" style="background:#6c757d" onclick="document.getElementById('hex-input').value='';document.getElementById('validator-output').classList.remove('visible')">Clear</button>
+        <button class="btn" id="btnScan" style="background:#1a7a1a">📷 Scan QR</button>
         <select id="example-select" onchange="loadExample()" style="padding:0.5rem 0.75rem;border:1.5px solid var(--border);border-radius:var(--radius);font-size:0.9rem;background:var(--surface);color:var(--text);cursor:pointer">
           <option value="">Load an example…</option>
         </select>
+      </div>
+      <div class="qr-dropzone" id="qrDropZone">
+        <label>
+          <input type="file" id="qrFileInput" accept="image/*">
+          Drop a QR code image, paste from clipboard, or <u>choose file</u>
+        </label>
       </div>
     </div>
 

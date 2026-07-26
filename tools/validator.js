@@ -635,3 +635,136 @@ function loadExample() {
 }
 
 populateExamples();
+
+// ── QR scanning ──────────────────────────────────────────────────────────
+if (typeof ZXingWASM !== 'undefined') {
+  ZXingWASM.prepareZXingModule({ fireImmediately: true });
+}
+
+let scanStream = null;
+let scanRafId = null;
+let scanning = false;
+
+function hexFromBytes(bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+}
+
+function handleScannedBytes(bytes) {
+  const hex = hexFromBytes(bytes);
+  document.getElementById('hex-input').value = hex;
+  document.getElementById('validator-output').classList.remove('visible');
+}
+
+async function scanQr(imgData) {
+  const results = await ZXingWASM.readBarcodes(imgData, { formats: ['QRCode'], tryHarder: true });
+  return results[0] || null;
+}
+
+async function tickScan(video, canvas) {
+  if (!scanning) return;
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(video, 0, 0);
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const result = await scanQr(img);
+    if (!scanning) return;
+    if (result) {
+      stopScan();
+      handleScannedBytes(result.bytes);
+      return;
+    }
+  }
+  scanRafId = requestAnimationFrame(() => tickScan(video, canvas));
+}
+
+async function startScan() {
+  if (scanning) return;
+  const overlay = document.getElementById('scanOverlay');
+  const video = document.getElementById('scanVideo');
+  overlay.classList.remove('hidden');
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }
+    });
+    video.srcObject = scanStream;
+    scanning = true;
+    tickScan(video, document.getElementById('scanCanvas'));
+  } catch (e) {
+    overlay.classList.add('hidden');
+  }
+}
+
+function stopScan() {
+  scanning = false;
+  if (scanRafId) { cancelAnimationFrame(scanRafId); scanRafId = null; }
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+  document.getElementById('scanVideo').srcObject = null;
+  document.getElementById('scanOverlay').classList.add('hidden');
+}
+
+function decodeQrFromImage(img) {
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth || img.width;
+  c.height = img.naturalHeight || img.height;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  return scanQr(ctx.getImageData(0, 0, c.width, c.height));
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btnScan').addEventListener('click', startScan);
+    document.getElementById('btnStopScan').addEventListener('click', stopScan);
+
+    const dropZone = document.getElementById('qrDropZone');
+    const fileInput = document.getElementById('qrFileInput');
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', async e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (!file || !file.type.startsWith('image/')) return;
+      const img = await loadImage(file);
+      const result = await decodeQrFromImage(img);
+      if (result) handleScannedBytes(result.bytes);
+    });
+
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      const img = await loadImage(file);
+      const result = await decodeQrFromImage(img);
+      if (result) handleScannedBytes(result.bytes);
+    });
+
+    document.addEventListener('paste', async e => {
+      const items = e.clipboardData.items;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (!file) continue;
+          const img = await loadImage(file);
+          const result = await decodeQrFromImage(img);
+          if (result) { handleScannedBytes(result.bytes); break; }
+        }
+      }
+    });
+  });
+}
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Failed to load image')); };
+    img.src = url;
+  });
+}
