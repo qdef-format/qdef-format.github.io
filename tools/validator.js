@@ -169,13 +169,11 @@ function fmtCBOR(item) {
         const keyAnn = p.key._ann;
         if (keyAnn) p.key._ann = '';
         html += `<li><span class="key">${fmtInline(p.key)}</span>: ${fmtInline(p.value)}`;
-        if (p.key.type === 'uint' && typeof p.key.value === 'number') {
-          if (keyAnn) {
-            html += ` <span class="tree-parity">// ${escapeHtml(keyAnn)}</span>`;
-          } else {
-            const parity = p.key.value % 2 === 0 ? 'critical' : 'optional';
-            html += ` <span class="tree-parity">// ${parity}</span>`;
-          }
+        if (keyAnn) {
+          html += ` <span class="tree-parity">// ${escapeHtml(keyAnn)}</span>`;
+        } else if (p.key.type === 'uint' && typeof p.key.value === 'number') {
+          const parity = p.key.value % 2 === 0 ? 'critical' : 'optional';
+          html += ` <span class="tree-parity">// ${parity}</span>`;
         }
         html += '</li>';
       }
@@ -219,7 +217,7 @@ function parseShape(shapeStr) {
   if (!shapeStr) return null;
   const fields = {};
   const inner = shapeStr.replace(/^map\s*\{/, '').replace(/\}\s*$/, '').trim();
-  const re = /(\d+)\s*:\s*(\w+)\s*\(([^)]+)\)/g;
+  const re = /(-?\d+)\s*:\s*(\w+)\s*\(([^)]+)\)/g;
   let m;
   while ((m = re.exec(inner)) !== null) {
     const name = m[3].split(',')[0].trim();
@@ -227,6 +225,76 @@ function parseShape(shapeStr) {
     fields[m[1]] = { type: m[2], name, optional: opt };
   }
   return Object.keys(fields).length > 0 ? fields : null;
+}
+
+const COMMON_FIELDS = {
+  '-1':  { type: 'bstr or tstr', name: 'ID' },
+  '-3':  { type: 'bstr', name: 'UUID' },
+  '-5':  { type: 'tag', name: 'Date' },
+  '-7':  { type: 'tstr', name: 'Label' },
+  '-9':  { type: 'tstr', name: 'Language' },
+  '-11': { type: 'bstr', name: 'Content Hash' },
+  '-13': { type: 'tstr', name: 'Source' },
+  '-15': { type: 'tstr', name: 'Filename' },
+};
+
+const STANDARD_SHAPES = {
+  '0': {
+    '3': { type: 'tstr', name: 'Hint Name', optional: true },
+    '5': { type: 'bstr', name: 'Backup Namespace', optional: true },
+  },
+  '2': {
+    '0': { type: 'bstr', name: 'Group ID' },
+    '2': { type: 'uint', name: 'Fragment Index' },
+    '4': { type: 'uint', name: 'Fragment Count' },
+    '7': { type: 'uint', name: 'Total Bytes', optional: true },
+    '9': { type: 'uint', name: 'Parity Scheme', optional: true },
+  },
+  '4': {
+    '0': { type: 'bstr', name: 'Nonce' },
+    '3': { type: 'uint or tstr', name: 'Algorithm', optional: true },
+    '5': { type: 'uint or tstr', name: 'Key Algorithm', optional: true },
+  },
+  '6': {
+    '0': { type: 'uint or tstr', name: 'Media Type' },
+  },
+  '10': {
+    '0': { type: 'tstr', name: 'URI' },
+    '1': { type: 'tstr', name: 'Label', optional: true },
+    '3': { type: 'tstr', name: 'Language', optional: true },
+    '5': { type: 'uint', name: 'Action', optional: true },
+  },
+  '12': {
+    '0': { type: 'tstr or bstr', name: 'Origin' },
+    '1': { type: 'tstr', name: 'Hint Name', optional: true },
+  },
+  '14': {
+    '0': { type: 'uint or tstr', name: 'Media Type' },
+    '1': { type: 'bstr', name: 'Content Hash', optional: true },
+    '3': { type: 'tstr', name: 'Filename', optional: true },
+    '5': { type: 'tstr', name: 'Label', optional: true },
+  },
+  '16': {
+    '0': { type: 'nint', name: 'Algorithm' },
+    '2': { type: 'bstr', name: 'Public Key' },
+  },
+};
+
+function getFieldDef(typeId, keyStr) {
+  if (COMMON_FIELDS[keyStr]) return COMMON_FIELDS[keyStr];
+
+  const nsEntry = typeof QDEF_REGISTRY !== 'undefined'
+    ? Object.values(QDEF_REGISTRY).find(e => e.types && e.types[String(typeId)])
+    : undefined;
+  if (nsEntry && nsEntry.types[String(typeId)]) {
+    const shape = parseShape(nsEntry.types[String(typeId)].shape);
+    if (shape && shape[keyStr]) return shape[keyStr];
+  }
+
+  const std = STANDARD_SHAPES[String(typeId)];
+  if (std && std[keyStr]) return std[keyStr];
+
+  return null;
 }
 
 // QDEF validation
@@ -380,20 +448,15 @@ function analyzeRecord(arr, issues, label, depth) {
   if (hasMap) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Has field map` });
     const mapItem = items[namespace ? (typeIdExplicit ? 2 : 1) : (typeIdExplicit ? 1 : 0)];
-    if (mapItem && nsHexFlat && typeof QDEF_REGISTRY !== 'undefined') {
-      const entry = QDEF_REGISTRY[nsHexFlat];
-      const rt = entry && entry.types && entry.types[String(typeId)];
-      const fieldDefs = rt && parseShape(rt.shape);
-      if (fieldDefs) {
-        for (const pair of mapItem.value) {
-          if (pair.key && (pair.key.type === 'uint' || pair.key.type === 'nint')) {
-            const k = String(pair.key.type === 'nint' ? -pair.key.value : pair.key.value);
-            const fd = fieldDefs[k];
-            if (fd) {
-              pair.key._ann = fd.name;
-              if (pair.value && pair.value.type !== 'map' && pair.value.type !== 'array') {
-                pair.value._ann = fd.type;
-              }
+    if (mapItem) {
+      for (const pair of mapItem.value) {
+        if (pair.key && (pair.key.type === 'uint' || pair.key.type === 'nint')) {
+          const k = String(pair.key.value);
+          const fd = getFieldDef(typeId, k);
+          if (fd) {
+            pair.key._ann = fd.name;
+            if (pair.value && pair.value.type !== 'map' && pair.value.type !== 'array') {
+              pair.value._ann = fd.type;
             }
           }
         }
@@ -511,6 +574,14 @@ const EXAMPLES = [
     hex: '51 44 45 46 ' +
       '81 ' +
       '  83 44 89 d4 14 e0 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01'
+  },
+  {
+    label: 'Media Preview + Payload',
+    hex: '51 44 45 46 81 83 0e a3 00 6a 74 65 78 74 2f 70 6c 61 69 6e 2a 48 12 9d a0 88 d6 d3 61 bc 2e 69 68 65 6c 6c 6f 2e 74 78 74 83 06 a1 00 6a 74 65 78 74 2f 70 6c 61 69 6e 58 19 48 65 6c 6c 6f 20 66 72 6f 6d 20 54 61 67 44 72 6f 70 20 43 6f 6e 74 65 6e 74'
+  },
+  {
+    label: 'TagDrop Content Extension',
+    hex: '51 44 45 46 81 83 44 89 d4 14 e0 01 a3 03 64 68 69 6e 74 0b 6a 64 65 73 63 72 69 70 74 69 6f 6e 0d 42 01 02'
   },
   {
     label: 'Single URL (global typeId=10)',
