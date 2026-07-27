@@ -17,7 +17,7 @@ Hex: `51 44 45 46 82 82 18 64 a3 00 6e 4d 79 20 43 6f 66 66 65 65 20 53 68 6f 70
 ```js
 [
   [
-    100  // typeId=100 (even/global)
+    100  // typeId=100 (even (global))
     {
       0: "My Coffee Shop"  // even/critical
       2: "guest123"  // even/critical
@@ -25,7 +25,7 @@ Hex: `51 44 45 46 82 82 18 64 a3 00 6e 4d 79 20 43 6f 66 66 65 65 20 53 68 6f 70
     }
   ]
   [
-    10  // typeId=10 (even/global) — Open/Hint URI
+    10  // typeId=10 (even (global)) - Open/Hint URI
     {
       0: "https://example.com/coffee-menu"  // URI (even/critical)
     }
@@ -42,7 +42,7 @@ Hex: `51 44 45 46 81 83 44 89 d4 14 e0 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01
 
 ```js
 [
-  1  // typeId=1 (odd/scoped)
+  1  // typeId=1 (odd (scoped))
   // namespace: 89 d4 14 e0
   {
     0: h'536f6d6544657374'  // even/critical
@@ -60,14 +60,14 @@ Hex: `51 44 45 46 81 83 0e a3 00 6a 74 65 78 74 2f 70 6c 61 69 6e 2a 48 12 9d a0
 
 ```js
 [
-  14  // typeId=14 (even/global) — Media Preview
+  14  // typeId=14 (even (global)) - Media Preview
   {
     0: "text/plain"  // Media Type (even/critical)
     -11: h'129da088d6d361bc'  // Content Hash (odd/optional)
     -15: "hello.txt"  // Filename (odd/optional)
   }
   [
-    6  // typeId=6 (even/global) — Media Payload
+    6  // typeId=6 (even (global)) - Media Payload
     {
       0: "text/plain"  // Media Type (even/critical)
     }
@@ -85,7 +85,7 @@ Hex: `51 44 45 46 81 83 44 89 d4 14 e0 01 a3 03 64 68 69 6e 74 0b 6b 64 65 73 63
 
 ```js
 [
-  1  // typeId=1 (odd/scoped)
+  1  // typeId=1 (odd (scoped))
   // namespace: 89 d4 14 e0
   {
     3: "hint"  // odd/optional
@@ -104,7 +104,7 @@ Hex: `51 44 45 46 81 82 0a a1 00 78 18 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c
 
 ```js
 [
-  10  // typeId=10 (even/global) — Open/Hint URI
+  10  // typeId=10 (even (global)) - Open/Hint URI
   {
     0: "https://example.com/qdef"  // URI (even/critical)
   }

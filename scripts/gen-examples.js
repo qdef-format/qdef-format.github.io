@@ -183,12 +183,12 @@ function renderRecordFull(arr, indent) {
   // typeId line with annotation
   if (ra.typeIdExplicit) {
     const typeName = STANDARD_TYPE_NAMES[String(ra.typeId)] || null;
-    const typeParity = ra.typeId % 2 === 0 ? 'even/global' : 'odd/scoped';
+    const typeParity = ra.typeId % 2 === 0 ? 'even (global)' : 'odd (scoped)';
     let ann = `  // typeId=${ra.typeId} (${typeParity})`;
-    if (typeName) ann += ` — ${typeName}`;
+    if (typeName) ann += ` - ${typeName}`;
     s += pad + '  ' + ra.typeId + ann + '\n';
   } else {
-    s += pad + '  ' + '0 (implicit)  // typeId=0 (even/global) — Bundle\n';
+    s += pad + '  ' + '0 (implicit)  // typeId=0 (even (global)) - Bundle\n';
   }
 
   // namespace
