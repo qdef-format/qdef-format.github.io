@@ -63,8 +63,8 @@ Hex: `51 44 45 46 81 83 0e a3 00 6a 74 65 78 74 2f 70 6c 61 69 6e 2a 48 12 9d a0
   14  // typeId=14 (even (global)) - Media Preview
   {
     0: "text/plain"  // Media Type (even/critical)
-    -11: h'129da088d6d361bc'  // Content Hash (odd/optional)
-    -15: "hello.txt"  // Filename (odd/optional)
+    -11: h'129da088d6d361bc'  // Content Hash (odd/optional) - common field key
+    -15: "hello.txt"  // Filename (odd/optional) - common field key
   }
   [
     6  // typeId=6 (even (global)) - Media Payload

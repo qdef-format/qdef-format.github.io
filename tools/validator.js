@@ -263,7 +263,8 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
           const keyParity = typeof pair.key.value === 'number'
             ? (pair.key.value % 2 === 0 ? 'even/critical' : 'odd/optional') : '';
           if (fd) {
-            pair.key._ann = keyParity ? `${fd.name} (${keyParity})` : fd.name;
+            const isCommon = COMMON_FIELDS[k] ? ' - common field key' : '';
+            pair.key._ann = keyParity ? `${fd.name} (${keyParity})${isCommon}` : `${fd.name}${isCommon}`;
             if (pair.value && pair.value.type !== 'map' && pair.value.type !== 'array') {
               pair.value._ann = fd.type;
             }

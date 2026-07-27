@@ -358,7 +358,8 @@ function annotateRecordStructure(arr, inheritedNamespace) {
         const keyParity = typeof pair.key.value === 'number'
           ? (pair.key.value % 2 === 0 ? 'even/critical' : 'odd/optional') : '';
         if (fd) {
-          annotateItem(pair.key, keyParity ? `${fd.name} (${keyParity})` : fd.name);
+          const isCommon = COMMON_FIELDS[k] ? ' - common field key' : '';
+          annotateItem(pair.key, keyParity ? `${fd.name} (${keyParity})${isCommon}` : `${fd.name}${isCommon}`);
           if (pair.value && pair.value.type !== 'map' && pair.value.type !== 'array') {
             annotateItem(pair.value, fd.type);
           }
