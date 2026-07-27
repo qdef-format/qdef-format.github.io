@@ -89,7 +89,17 @@
         <h3 style="margin-bottom:0.5rem">QR Code</h3>
         <div style="display:flex;align-items:start;gap:1rem;flex-wrap:wrap">
           <div id="qr-canvas-wrapper" style="background:#fff;padding:12px;border-radius:var(--radius);display:inline-block"></div>
-          <div id="qr-info" style="font-size:0.85rem;color:var(--text-muted);max-width:300px"></div>
+          <div>
+            <div id="qr-info" style="font-size:0.85rem;color:var(--text-muted)"></div>
+            <table style="margin-top:0.5rem;font-size:0.75rem;color:var(--text-muted);border-collapse:collapse">
+              <tr><th style="padding:2px 8px 2px 0;text-align:left;font-weight:600">Payload</th><th style="padding:2px 0;text-align:left;font-weight:600">Scan reliability</th></tr>
+              <tr><td style="padding:2px 8px 2px 0">&le; 400 B</td><td style="padding:2px 0">super reliable</td></tr>
+              <tr><td style="padding:2px 8px 2px 0">&le; 600 B</td><td style="padding:2px 0">average reliability</td></tr>
+              <tr><td style="padding:2px 8px 2px 0">&le; 800 B</td><td style="padding:2px 0">dense</td></tr>
+              <tr><td style="padding:2px 8px 2px 0">&le; 1000 B</td><td style="padding:2px 0">super dense</td></tr>
+              <tr><td style="padding:2px 8px 2px 0">&gt; 1000 B</td><td style="padding:2px 0">may be difficult to scan</td></tr>
+            </table>
+          </div>
         </div>
       </div>
     </div>
