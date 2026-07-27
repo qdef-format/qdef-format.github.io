@@ -42,9 +42,9 @@ Hex: `51 44 45 46 81 83 44 89 d4 14 e0 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01
 
 ```js
 [ 1 item // Bundle (implicit typeId=0)
-  [ 3 items // Record (typeId=1)
-    h'89d414e0' (4 B) // namespace: 89d414e0
-    1 // typeId=1 (odd (scoped))
+  [ 3 items // TagDrop Record (typeId=1)
+    h'89d414e0' (4 B) // namespace: 89d414e0 (TagDrop)
+    1 // typeId=1 (odd (scoped)) - Content Extension
     { 2 keys
       0: h'536f6d6544657374' // even/critical
       2: 1 // even/critical
@@ -89,13 +89,13 @@ Hex: `51 44 45 46 81 83 44 89 d4 14 e0 01 a3 03 64 68 69 6e 74 0b 6b 64 65 73 63
 
 ```js
 [ 1 item // Bundle (implicit typeId=0)
-  [ 3 items // Record (typeId=1)
-    h'89d414e0' (4 B) // namespace: 89d414e0
-    1 // typeId=1 (odd (scoped))
+  [ 3 items // TagDrop Record (typeId=1)
+    h'89d414e0' (4 B) // namespace: 89d414e0 (TagDrop)
+    1 // typeId=1 (odd (scoped)) - Content Extension
     { 3 keys
-      3: "hint" // odd/optional
-      11: "description" // odd/optional
-      13: h'0102' // odd/optional
+      3: "hint" text // hint (odd/optional)
+      11: "description" text // description (odd/optional)
+      13: h'0102' bytes // collection_id (odd/optional)
     }
   ]
 ]

@@ -1,7 +1,39 @@
 const fs = require('fs');
 const path = require('path');
+const recfile = require('./recfile');
 
 const ROOT = path.resolve(__dirname, '..');
+
+// Build registry from registry.rec so annotateRecordStructure can resolve
+// namespace-scoped type names and field definitions.
+(() => {
+  const records = recfile.parse(path.join(ROOT, 'registry.rec'));
+  const namespaces = recfile.getFlat(records, 'Namespace');
+  const recordTypes = recfile.getFlat(records, 'RecordType');
+  const byId = {};
+  for (const ns of namespaces) {
+    const rawId = recfile.get(ns, 'NamespaceId');
+    const hex = rawId.replace(/^h'|'$/g, '').toLowerCase();
+    byId[hex] = {
+      name: recfile.get(ns, 'NamespaceName'),
+      variable: recfile.get(ns, 'VariableName') || null,
+      contact: recfile.get(ns, 'Contact') || null,
+      status: recfile.get(ns, 'Status'),
+      types: {}
+    };
+    const types = recordTypes.filter(rt => recfile.get(rt, 'NamespaceId') === rawId);
+    for (const t of types) {
+      const tid = recfile.get(t, 'ScopedTypeId');
+      byId[hex].types[tid] = {
+        name: recfile.get(t, 'RecordTypeName') || null,
+        variable: recfile.get(t, 'VariableName') || null,
+        shape: recfile.get(t, 'DataItem') || null,
+        semantics: recfile.get(t, 'Semantics') || null
+      };
+    }
+  }
+  globalThis.QDEF_REGISTRY = byId;
+})();
 
 // Shared CBOR decoder + field metadata + annotation + tree renderer.
 const assetPath = path.join(ROOT, 'assets', 'cbor-util.js');
