@@ -11,25 +11,6 @@ const {
   annotateRecordStructure
 } = CBOR_UTIL;
 
-// ── Formatting helpers ────────────────────────────────────────────────
-
-function fmtInline(item) {
-  if (!item) return '(null)';
-  switch (item.type) {
-    case 'uint': case 'nint': return String(item.value);
-    case 'bytes': {
-      const h = Array.from(item.value.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join('');
-      return `h'${h}${item.value.length > 8 ? '...' : ''}'`;
-    }
-    case 'tstr': return `"${item.value.length > 60 ? item.value.slice(0, 60) + '...' : item.value}"`;
-    case 'simple': return item.value === 20 ? 'false' : item.value === 21 ? 'true' : `simple(${item.value})`;
-    case 'tag': return `tag(${item.tag})`;
-    case 'array': return `[...]`;
-    case 'map': return `{...}`;
-    default: return `(${item.type})`;
-  }
-}
-
 // ── Annotated tree rendering ─────────────────────────────────────────
 
 function renderExample(ex) {
@@ -42,101 +23,101 @@ function renderExample(ex) {
     return `\`\`\`js\n${ex.hex}\n\`\`\`\n\n*Not a valid QDEF Bundle.*`;
   }
 
-  // Annotate all records using the shared annotation logic
-  for (const item of root.value) {
-    if (item.type === 'array') {
-      annotateRecordStructure(item);
-    }
-  }
+  // Annotate the root bundle and all subrecords
+  annotateRecordStructure(root);
 
   let s = '```js\n';
-  if (root.value.length === 0) {
-    s += '[]     // Bundle (implicit typeId=0), empty\n';
-  } else {
-    s += renderBundleItems(root.value) + '\n';
-  }
+  s += renderAnnotated(root, 0) + '\n';
   s += '```\n';
   return s;
 }
 
-function renderBundleItems(items) {
-  if (items.length === 1) {
-    const item = items[0];
-    if (item.type === 'array') {
-      return renderAnnotatedRecord(item, 0);
-    }
-    return '  ' + fmtInline(item);
-  }
-  let s = '[\n';
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    if (item.type === 'array') {
-      s += renderAnnotatedRecord(item, 1);
-    } else {
-      s += '  ' + fmtInline(item);
-    }
-    if (i < items.length - 1) s += '\n';
-  }
-  s += '\n]';
-  return s;
-}
-
-function renderAnnotatedRecord(arr, indent) {
+function renderAnnotated(item, indent) {
   const pad = '  '.repeat(indent);
-  const items = (arr.value || []).filter(i => i != null);
-  let s = pad + '[\n';
+  if (!item) return pad + '(null)';
 
-  let hadSub = false;
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
+  if (item.type === 'error') return pad + `⚠ ${item.text}`;
 
-    if (item.type === 'array') {
-      hadSub = true;
-      s += renderAnnotatedRecord(item, indent + 1);
-      if (i < items.length - 1) s += '\n';
-      continue;
+  const ann = item._ann ? ` // ${item._ann}` : '';
+
+  switch (item.type) {
+    case 'uint':
+    case 'nint':
+      return pad + String(item.value) + ann;
+
+    case 'bytes': {
+      const hex = bytesToHex(item.value).replace(/ /g, '');
+      const size = item.value.length > 0 ? ` (${item.value.length} B)` : '';
+      return pad + `h'${hex}'${size}${ann}`;
     }
 
-    const ann = item._ann ? `  // ${item._ann}` : '';
-    const prefix = pad + '  ';
+    case 'tstr': {
+      const s = item.value.length > 64 ? item.value.slice(0, 64) + '...' : item.value;
+      return pad + `"${s}"` + ann;
+    }
 
-    if (item.type === 'map') {
-      s += renderMapAnnotated(item, indent + 1);
-      s += '\n';
-    } else if (item.type === 'bytes') {
-      if (item._ann && item._ann.startsWith('namespace:')) {
-        s += prefix + `h'${bytesToHex(item.value).replace(/ /g, '')}'${ann}\n`;
-      } else {
-        s += prefix + fmtInline(item) + ann + '\n';
+    case 'simple':
+      return pad + (item.value === 20 ? 'false' : item.value === 21 ? 'true' : `simple(${item.value})`) + ann;
+
+    case 'tag':
+      return pad + `tag(${item.tag})\n` + renderAnnotated(item.value, indent + 1);
+
+    case 'array': {
+      const items = (item.value || []).filter(i => i != null);
+      if (items.length === 0) return pad + '[]' + ann;
+      let s = pad + `[ ${items.length} item${items.length !== 1 ? 's' : ''}${ann}\n`;
+      for (let i = 0; i < items.length; i++) {
+        if (i > 0) s += '\n';
+        s += renderAnnotated(items[i], indent + 1);
       }
-    } else {
-      s += prefix + fmtInline(item) + ann + '\n';
+      s += '\n' + pad + ']';
+      return s;
     }
-  }
 
-  if (hadSub) s += '\n';
-  s += pad + ']';
-  return s;
+    case 'map': {
+      if (item.value.length === 0) return pad + '{}' + ann;
+      let s = pad + `{ ${item.value.length} key${item.value.length !== 1 ? 's' : ''}\n`;
+      for (const p of item.value) {
+        const k = p.key;
+        const v = p.value;
+        let keyAnn = '';
+        if (k._ann) {
+          keyAnn = ` // ${k._ann}`;
+        } else if ((k.type === 'uint' || k.type === 'nint') && typeof k.value === 'number') {
+          keyAnn = ` // ${k.value % 2 === 0 ? 'even/critical' : 'odd/optional'}`;
+        }
+        // Render key inline, then colon and value
+        const kText = renderInline(k);
+        const vText = renderInline(v);
+        s += '  '.repeat(indent + 1) + `${kText}: ${vText}${keyAnn}\n`;
+      }
+      s += pad + '}';
+      return s;
+    }
+
+    default:
+      return pad + `(${item.type})` + ann;
+  }
 }
 
-function renderMapAnnotated(map, indent) {
-  const pad = '  '.repeat(indent);
-  if (map.value.length === 0) return pad + '{}';
-  let s = pad + '{';
-  for (let i = 0; i < map.value.length; i++) {
-    const p = map.value[i];
-    const k = p.key;
-    const v = p.value;
-    let ann = '';
-    if (k._ann) {
-      ann = `  // ${k._ann}`;
-    } else if ((k.type === 'uint' || k.type === 'nint') && typeof k.value === 'number') {
-      ann = `  // ${k.value % 2 === 0 ? 'even/critical' : 'odd/optional'}`;
+function renderInline(item) {
+  if (!item) return '(null)';
+  switch (item.type) {
+    case 'uint': case 'nint': return String(item.value);
+    case 'bytes': {
+      const hex = Array.from(item.value.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join('');
+      return `h'${hex}${item.value.length > 8 ? '...' : ''}'`;
     }
-    s += '\n' + '  '.repeat(indent + 1) + `${fmtInline(k)}: ${fmtInline(v)}${ann}`;
+    case 'tstr': {
+      const s = item.value.length > 40 ? item.value.slice(0, 40) + '...' : item.value;
+      return `"${s}"`;
+    }
+    case 'simple': return item.value === 20 ? 'false' : item.value === 21 ? 'true' : `simple(${item.value})`;
+    case 'tag': return `tag(${item.tag})`;
+    case 'array': return `[${item.value.length} items]`;
+    case 'map': return `{${item.value.length} keys}`;
+    default: return `(${item.type})`;
   }
-  s += '\n' + pad + '}';
-  return s;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────

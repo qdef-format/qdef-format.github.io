@@ -15,19 +15,19 @@ A Bundle of two Records — an illustrative Wi-Fi credential (type 100) and a st
 Hex: `51 44 45 46 82 82 18 64 a3 00 6e 4d 79 20 43 6f 66 66 65 65 20 53 68 6f 70 02 68 67 75 65 73 74 31 32 33 04 02 82 0a a1 00 78 1f 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 63 6f 66 66 65 65 2d 6d 65 6e 75`
 
 ```js
-[
-  [
-    100  // typeId=100 (even (global))
-    {
-      0: "My Coffee Shop"  // even/critical
-      2: "guest123"  // even/critical
-      4: 2  // even/critical
+[ 2 items // Bundle (implicit typeId=0)
+  [ 2 items // Record (typeId=100)
+    100 // typeId=100 (even (global))
+    { 3 keys
+      0: "My Coffee Shop" // even/critical
+      2: "guest123" // even/critical
+      4: 2 // even/critical
     }
   ]
-  [
-    10  // typeId=10 (even (global)) - Open/Hint URI
-    {
-      0: "https://example.com/coffee-menu"  // URI (even/critical)
+  [ 2 items // Record (typeId=10) — Open/Hint URI
+    10 // typeId=10 (even (global)) - Open/Hint URI
+    { 1 key
+      0: "https://example.com/coffee-menu" // URI (even/critical)
     }
   ]
 ]
@@ -41,13 +41,15 @@ A scoped Record under namespace 89d414e0 (TagDrop) with typeId=1, carrying an or
 Hex: `51 44 45 46 81 83 44 89 d4 14 e0 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01`
 
 ```js
-[
-  h'89d414e0'  // namespace: 89d414e0
-  1  // typeId=1 (odd (scoped))
-  {
-    0: h'536f6d6544657374'  // even/critical
-    2: 1  // even/critical
-  }
+[ 1 item // Bundle (implicit typeId=0)
+  [ 3 items // Record (typeId=1)
+    h'89d414e0' (4 B) // namespace: 89d414e0
+    1 // typeId=1 (odd (scoped))
+    { 2 keys
+      0: h'536f6d6544657374' // even/critical
+      2: 1 // even/critical
+    }
+  ]
 ]
 ```
 
@@ -59,19 +61,21 @@ A Media Preview (type 14, even) containing a content hash and filename via Commo
 Hex: `51 44 45 46 81 83 0e a3 00 6a 74 65 78 74 2f 70 6c 61 69 6e 2a 48 12 9d a0 88 d6 d3 61 bc 2e 69 68 65 6c 6c 6f 2e 74 78 74 83 06 a1 00 6a 74 65 78 74 2f 70 6c 61 69 6e 58 1a 48 65 6c 6c 6f 20 66 72 6f 6d 20 54 61 67 44 72 6f 70 20 43 6f 6e 74 65 6e 74`
 
 ```js
-[
-  14  // typeId=14 (even (global)) - Media Preview
-  {
-    0: "text/plain"  // Media Type (even/critical)
-    -11: h'129da088d6d361bc'  // Content Hash (odd/optional) - common field key
-    -15: "hello.txt"  // Filename (odd/optional) - common field key
-  }
-  [
-    6  // typeId=6 (even (global)) - Media Payload
-    {
-      0: "text/plain"  // Media Type (even/critical)
+[ 1 item // Bundle (implicit typeId=0)
+  [ 3 items // Record (typeId=14) — Media Preview
+    14 // typeId=14 (even (global)) - Media Preview
+    { 3 keys
+      0: "text/plain" // Media Type (even/critical)
+      -11: h'129da088d6d361bc' // Content Hash (odd/optional) - common field key
+      -15: "hello.txt" // Filename (odd/optional) - common field key
     }
-    h'48656c6c6f206672...'
+    [ 3 items // Record (typeId=6) — Media Payload
+      6 // typeId=6 (even (global)) - Media Payload
+      { 1 key
+        0: "text/plain" // Media Type (even/critical)
+      }
+      h'48656c6c6f2066726f6d2054616744726f7020436f6e74656e74' (26 B)
+    ]
   ]
 ]
 ```
@@ -84,14 +88,16 @@ A scoped Record (typeId=1) under namespace 89d414e0 with three extension fields 
 Hex: `51 44 45 46 81 83 44 89 d4 14 e0 01 a3 03 64 68 69 6e 74 0b 6b 64 65 73 63 72 69 70 74 69 6f 6e 0d 42 01 02`
 
 ```js
-[
-  h'89d414e0'  // namespace: 89d414e0
-  1  // typeId=1 (odd (scoped))
-  {
-    3: "hint"  // odd/optional
-    11: "description"  // odd/optional
-    13: h'0102'  // odd/optional
-  }
+[ 1 item // Bundle (implicit typeId=0)
+  [ 3 items // Record (typeId=1)
+    h'89d414e0' (4 B) // namespace: 89d414e0
+    1 // typeId=1 (odd (scoped))
+    { 3 keys
+      3: "hint" // odd/optional
+      11: "description" // odd/optional
+      13: h'0102' // odd/optional
+    }
+  ]
 ]
 ```
 
@@ -103,11 +109,13 @@ A minimal Open/Hint URI Record (type 10, even) with just a URL field — no opti
 Hex: `51 44 45 46 81 82 0a a1 00 78 18 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 71 64 65 66`
 
 ```js
-[
-  10  // typeId=10 (even (global)) - Open/Hint URI
-  {
-    0: "https://example.com/qdef"  // URI (even/critical)
-  }
+[ 1 item // Bundle (implicit typeId=0)
+  [ 2 items // Record (typeId=10) — Open/Hint URI
+    10 // typeId=10 (even (global)) - Open/Hint URI
+    { 1 key
+      0: "https://example.com/qdef" // URI (even/critical)
+    }
+  ]
 ]
 ```
 
@@ -119,7 +127,7 @@ The smallest valid QDEF payload — a Bundle containing zero Records.
 Hex: `51 44 45 46 80`
 
 ```js
-[]     // Bundle (implicit typeId=0), empty
+[] // Bundle (implicit typeId=0)
 ```
 
 
