@@ -376,6 +376,95 @@ function annotateRecordStructure(arr, inheritedNamespace) {
   return { namespace, typeId, typeIdExplicit, mapItem, payloadItem, subrecords, effectiveNamespace };
 }
 
+// ── Text tree renderer (shared between validator and docs) ────────────
+
+function renderInlineText(item) {
+  if (!item) return '(null)';
+  switch (item.type) {
+    case 'uint': case 'nint': return String(item.value);
+    case 'bytes': {
+      const hex = Array.from(item.value.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join('');
+      return `h'${hex}${item.value.length > 8 ? '...' : ''}'`;
+    }
+    case 'tstr': {
+      const s = item.value.length > 40 ? item.value.slice(0, 40) + '...' : item.value;
+      return `"${s}"`;
+    }
+    case 'simple': return item.value === 20 ? 'false' : item.value === 21 ? 'true' : `simple(${item.value})`;
+    case 'tag': return `tag(${item.tag})`;
+    case 'array': return `[${item.value.length} items]`;
+    case 'map': return `{${item.value.length} keys}`;
+    default: return `(${item.type})`;
+  }
+}
+
+function renderTreeText(item, indent) {
+  const pad = '  '.repeat(indent);
+  if (!item) return pad + '(null)';
+  if (item.type === 'error') return pad + `⚠ ${item.text}`;
+
+  const ann = item._ann ? ` // ${item._ann}` : '';
+
+  switch (item.type) {
+    case 'uint':
+    case 'nint':
+      return pad + String(item.value) + ann;
+
+    case 'bytes': {
+      const hex = bytesToHex(item.value).replace(/ /g, '');
+      const size = item.value.length > 0 ? ` (${item.value.length} B)` : '';
+      return pad + `h'${hex}'${size}${ann}`;
+    }
+
+    case 'tstr': {
+      const s = item.value.length > 64 ? item.value.slice(0, 64) + '...' : item.value;
+      return pad + `"${s}"` + ann;
+    }
+
+    case 'simple':
+      return pad + (item.value === 20 ? 'false' : item.value === 21 ? 'true' : `simple(${item.value})`) + ann;
+
+    case 'tag':
+      return pad + `tag(${item.tag})\n` + renderTreeText(item.value, indent + 1);
+
+    case 'array': {
+      const items = (item.value || []).filter(i => i != null);
+      if (items.length === 0) return pad + '[]' + ann;
+      let s = pad + `[ ${items.length} item${items.length !== 1 ? 's' : ''}${ann}\n`;
+      for (let i = 0; i < items.length; i++) {
+        if (i > 0) s += '\n';
+        s += renderTreeText(items[i], indent + 1);
+      }
+      s += '\n' + pad + ']';
+      return s;
+    }
+
+    case 'map': {
+      if (item.value.length === 0) return pad + '{}' + ann;
+      let s = pad + `{ ${item.value.length} key${item.value.length !== 1 ? 's' : ''}\n`;
+      for (const p of item.value) {
+        const k = p.key;
+        const v = p.value;
+        let keyAnn = '';
+        if (k._ann) {
+          keyAnn = ` // ${k._ann}`;
+        } else if ((k.type === 'uint' || k.type === 'nint') && typeof k.value === 'number') {
+          keyAnn = ` // ${k.value % 2 === 0 ? 'even/critical' : 'odd/optional'}`;
+        }
+        const kText = renderInlineText(k);
+        const vText = renderInlineText(v);
+        const vAnn = v._ann && (v.type === 'map' || v.type === 'array') ? '' : v._ann ? ` ${v._ann}` : '';
+        s += '  '.repeat(indent + 1) + `${kText}: ${vText}${vAnn}${keyAnn}\n`;
+      }
+      s += pad + '}';
+      return s;
+    }
+
+    default:
+      return pad + `(${item.type})` + ann;
+  }
+}
+
 // ── Global registration ───────────────────────────────────────────────
 
 global.CBOR_UTIL = {
@@ -391,6 +480,8 @@ global.CBOR_UTIL = {
   analyzeRecord,
   annotateItem,
   annotateRecordStructure,
+  renderInlineText,
+  renderTreeText,
 };
 
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

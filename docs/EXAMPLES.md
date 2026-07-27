@@ -27,7 +27,7 @@ Hex: `51 44 45 46 82 82 18 64 a3 00 6e 4d 79 20 43 6f 66 66 65 65 20 53 68 6f 70
   [ 2 items // Record (typeId=10) — Open/Hint URI
     10 // typeId=10 (even (global)) - Open/Hint URI
     { 1 key
-      0: "https://example.com/coffee-menu" // URI (even/critical)
+      0: "https://example.com/coffee-menu" tstr // URI (even/critical)
     }
   ]
 ]
@@ -65,14 +65,14 @@ Hex: `51 44 45 46 81 83 0e a3 00 6a 74 65 78 74 2f 70 6c 61 69 6e 2a 48 12 9d a0
   [ 3 items // Record (typeId=14) — Media Preview
     14 // typeId=14 (even (global)) - Media Preview
     { 3 keys
-      0: "text/plain" // Media Type (even/critical)
-      -11: h'129da088d6d361bc' // Content Hash (odd/optional) - common field key
-      -15: "hello.txt" // Filename (odd/optional) - common field key
+      0: "text/plain" uint or tstr // Media Type (even/critical)
+      -11: h'129da088d6d361bc' bstr // Content Hash (odd/optional) - common field key
+      -15: "hello.txt" tstr // Filename (odd/optional) - common field key
     }
     [ 3 items // Record (typeId=6) — Media Payload
       6 // typeId=6 (even (global)) - Media Payload
       { 1 key
-        0: "text/plain" // Media Type (even/critical)
+        0: "text/plain" uint or tstr // Media Type (even/critical)
       }
       h'48656c6c6f2066726f6d2054616744726f7020436f6e74656e74' (26 B)
     ]
@@ -113,7 +113,7 @@ Hex: `51 44 45 46 81 82 0a a1 00 78 18 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c
   [ 2 items // Record (typeId=10) — Open/Hint URI
     10 // typeId=10 (even (global)) - Open/Hint URI
     { 1 key
-      0: "https://example.com/qdef" // URI (even/critical)
+      0: "https://example.com/qdef" tstr // URI (even/critical)
     }
   ]
 ]
