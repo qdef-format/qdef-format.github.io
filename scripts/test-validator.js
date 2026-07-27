@@ -49,8 +49,7 @@ function test(label, hex, expectValid, opts) {
 
 // ── Tests from shared validator-examples.js ──────────────────────────────
 for (const ex of VALIDATOR_EXAMPLES) {
-  const hasMagic = ex.hex.replace(/\s+/g, '').startsWith('51444546');
-  test(ex.label, ex.hex, hasMagic, { expectClean: hasMagic });
+  test(ex.label, ex.hex, ex.expectValid, { expectClean: ex.expectValid });
 }
 
 // ── Additional edge cases ──────────────────────────────────────────────
