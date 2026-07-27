@@ -79,6 +79,9 @@ if (fs.existsSync(OUT)) {
   fs.rmSync(OUT, { recursive: true });
 }
 
+// Regenerate EXAMPLES.md from shared validator examples data
+require('./gen-examples');
+
 const docsDir = path.join(ROOT, 'docs');
 const map = {
   'QDEF-SPEC.md': { out: 'spec.html', title: 'Specification', desc: 'QDEF wire format specification.', banner: true },

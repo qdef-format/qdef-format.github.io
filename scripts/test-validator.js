@@ -7,8 +7,10 @@ globalThis.QDEF_REGISTRY = JSON.parse(
     .replace('const QDEF_REGISTRY = ', '').replace(/;\n$/, '')
 );
 
+// Load shared CBOR utilities
+eval(fs.readFileSync(path.join(ROOT, 'assets', 'cbor-util.js'), 'utf-8'));
+
 // Load examples from the shared data file
-globalThis.VALIDATOR_EXAMPLES = [];
 eval(fs.readFileSync(path.join(ROOT, 'assets', 'validator-examples.js'), 'utf-8'));
 
 const valSrc = fs.readFileSync(path.join(ROOT, 'tools', 'validator.js'), 'utf-8');
@@ -26,6 +28,8 @@ function assert(condition, msg) {
   if (condition) { passed++; }
   else { failed++; console.error('FAIL: ' + msg); }
 }
+
+const { hexToBytes, bytesToHex } = CBOR_UTIL;
 
 function test(label, hex, expectValid, opts) {
   opts = opts || {};

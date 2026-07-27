@@ -23,15 +23,26 @@
                          border-radius: 8px; background: #000; }
     #scanOverlay canvas { display: none; }
     #scanStatus { font-size: 0.9rem; color: #ccc; text-align: center; margin: 0; }
+    .btn-validate { background: var(--accent); }
 
     .qr-dropzone {
       margin-top: 10px; padding: 10px; border: 2px dashed var(--border);
       border-radius: var(--radius); font-size: 0.85rem; color: var(--text-muted);
       cursor: pointer; text-align: center; transition: border-color .15s, background-color .15s;
     }
-    .qr-dropzone.dragover { border-color: var(--accent); background: var(--accent-bg, #f0f0ff); }
+    .qr-dropzone.dragover { border-color: var(--accent); background: var(--surface); }
     .qr-dropzone label { cursor: pointer; display: block; }
     .qr-dropzone input[type="file"] { display: none; }
+    .btn-secondary { background: #6c757d; }
+    .btn-secondary:hover { background: #5a6268; }
+    .btn-scan { background: #1a7a1a; }
+    .btn-scan:hover { background: #158015; }
+    @media (prefers-color-scheme: dark) {
+      .btn-secondary { background: #3d3d55; }
+      .btn-secondary:hover { background: #4d4d6a; }
+      .btn-scan { background: #1e5e1e; }
+      .btn-scan:hover { background: #287028; }
+    }
   </style>
 </head>
 <body>
@@ -55,7 +66,7 @@
       <video id="scanVideo" autoplay playsinline muted></video>
       <canvas id="scanCanvas"></canvas>
       <p id="scanStatus">Point camera at a QDEF QR code.</p>
-      <button class="btn" style="background:#6c757d" id="btnStopScan">Cancel</button>
+      <button class="btn btn-secondary" id="btnStopScan">Cancel</button>
     </div>
   </div>
 
@@ -68,8 +79,8 @@
       <textarea id="hex-input" placeholder="Paste hex bytes here... e.g. 51 44 45 46 82 18 64 ..."></textarea>
       <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
         <button class="btn" onclick="validateQDEPayload(document.getElementById('hex-input').value)">Validate</button>
-        <button class="btn" style="background:#6c757d" onclick="document.getElementById('hex-input').value='';document.getElementById('validator-output').classList.remove('visible')">Clear</button>
-        <button class="btn" id="btnScan" style="background:#1a7a1a">📷 Scan QR</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('hex-input').value='';document.getElementById('validator-output').classList.remove('visible')">Clear</button>
+        <button class="btn btn-scan" id="btnScan">📷 Scan QR</button>
         <select id="example-select" onchange="loadExample()" style="padding:0.5rem 0.75rem;border:1.5px solid var(--border);border-radius:var(--radius);font-size:0.9rem;background:var(--surface);color:var(--text);cursor:pointer">
           <option value="">Load an example…</option>
         </select>
@@ -88,7 +99,7 @@
       <div id="qr-section" style="margin-top:1.5rem;display:none">
         <h3 style="margin-bottom:0.5rem">QR Code</h3>
         <div style="display:flex;align-items:start;gap:1rem;flex-wrap:wrap">
-          <div id="qr-canvas-wrapper" style="background:#fff;padding:12px;border-radius:var(--radius);display:inline-block"></div>
+          <div id="qr-canvas-wrapper" style="background:var(--surface);padding:12px;border-radius:var(--radius);display:inline-block"></div>
           <div>
             <div id="qr-info" style="font-size:0.85rem;color:var(--text-muted)"></div>
             <table style="margin-top:0.5rem;font-size:0.75rem;color:var(--text-muted);border-collapse:collapse">
@@ -110,6 +121,7 @@
   </footer>
 
   <script src="../assets/registry-data.js"></script>
+  <script src="../assets/cbor-util.js"></script>
   <script src="../assets/validator-examples.js"></script>
   <script src="validator.js"></script>
 </body>

@@ -7,6 +7,7 @@
   <meta name="description" content="__DESCRIPTION__">
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
 </head>
 <body>
   <header>
@@ -31,6 +32,8 @@
   <footer>
     <p>QDEF &mdash; Quick Data Exchange Format &bull; <a href="https://github.com/qdef-format/qdef">GitHub</a></p>
   </footer>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+  <script>document.querySelectorAll('pre code[class*="language-"]').forEach(hljs.highlightElement);</script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
   <script>mermaid.initialize({ startOnLoad: true, theme: 'default' });</script>
 </body>
