@@ -171,8 +171,8 @@ function fmtCBOR(item) {
         html += `<li><span class="key">${fmtInline(p.key)}</span>: ${fmtInline(p.value)}`;
         if (keyAnn) {
           html += ` <span class="tree-parity">// ${escapeHtml(keyAnn)}</span>`;
-        } else if (p.key.type === 'uint' && typeof p.key.value === 'number') {
-          const parity = p.key.value % 2 === 0 ? 'critical' : 'optional';
+        } else if ((p.key.type === 'uint' || p.key.type === 'nint') && typeof p.key.value === 'number') {
+          const parity = p.key.value % 2 === 0 ? 'even/critical' : 'odd/optional';
           html += ` <span class="tree-parity">// ${parity}</span>`;
         }
         html += '</li>';
@@ -470,7 +470,8 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
     if (!typeName && STANDARD_TYPE_NAMES[String(typeId)]) {
       typeName = STANDARD_TYPE_NAMES[String(typeId)];
     }
-    if (typeName) typeAnn += ` (${typeName})`;
+    typeAnn += ` (${parity})`;
+    if (typeName) typeAnn += ` - ${typeName}`;
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Type ID: ${typeId} (${parity})${typeName ? ' → ' + typeName : ''}` });
     annotateItem(tidItem, typeAnn);
     if (typeName && recordAnn) recordAnn += ` — ${typeName}`;
@@ -485,8 +486,10 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
         if (pair.key && (pair.key.type === 'uint' || pair.key.type === 'nint')) {
           const k = String(pair.key.value);
           const fd = getFieldDef(typeId, k, regNsHex);
+          const keyParity = typeof pair.key.value === 'number'
+            ? (pair.key.value % 2 === 0 ? 'even/critical' : 'odd/optional') : '';
           if (fd) {
-            pair.key._ann = fd.name;
+            pair.key._ann = keyParity ? `${fd.name} (${keyParity})` : fd.name;
             if (pair.value && pair.value.type !== 'map' && pair.value.type !== 'array') {
               pair.value._ann = fd.type;
             }
