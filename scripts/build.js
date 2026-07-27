@@ -17,9 +17,40 @@ function addIds(html) {
   });
 }
 
+function generateToc(html) {
+  const headings = [];
+  const re = /<h([23])\s+id="([^"]+)"[^>]*>(.*?)<\/h\1>/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    headings.push({ level: parseInt(m[1]), id: m[2], text: m[3].replace(/<[^>]+>/g, '') });
+  }
+  if (headings.length < 3) return '';
+
+  let toc = '<nav class="toc"><h2>Table of Contents</h2>\n<ul>\n';
+  for (let i = 0; i < headings.length; i++) {
+    const h = headings[i];
+    const next = headings[i + 1];
+    if (h.level === 2) {
+      toc += `  <li><a href="#${h.id}">${h.text}</a>\n`;
+      if (next && next.level === 3) {
+        toc += '    <ul>\n';
+      } else {
+        toc += '  </li>\n';
+      }
+    } else {
+      toc += `      <li><a href="#${h.id}">${h.text}</a></li>\n`;
+      if (!next || next.level === 2) {
+        toc += '    </ul>\n  </li>\n';
+      }
+    }
+  }
+  toc += '</ul>\n</nav>\n';
+  return toc;
+}
+
 const pageMap = {
   'QDEF-SPEC.md': 'spec.html',
-  'DESIGN.md': 'design.html',
+
   'EXAMPLES.md': 'examples.html',
   'IMPLEMENTATIONS.md': 'implementations.html',
   'RELATED-WORK.md': 'related-work.html',
@@ -51,7 +82,6 @@ if (fs.existsSync(OUT)) {
 const docsDir = path.join(ROOT, 'docs');
 const map = {
   'QDEF-SPEC.md': { out: 'spec.html', title: 'Specification', desc: 'QDEF wire format specification.', banner: true },
-  'DESIGN.md': { out: 'design.html', title: 'Design Rationale', desc: 'QDEF design rationale.', banner: false },
   'EXAMPLES.md': { out: 'examples.html', title: 'Examples', desc: 'QDEF Record Type examples.', banner: false },
   'IMPLEMENTATIONS.md': { out: 'implementations.html', title: 'Implementations', desc: 'Projects and applications using QDEF.', banner: false },
   'RELATED-WORK.md': { out: 'related-work.html', title: 'Related Work', desc: 'Survey of related formats and standards in the typed-record container space.', banner: false }
@@ -64,6 +94,18 @@ Object.entries(map).forEach(([file, cfg]) => {
   let body = marked.parse(md);
   body = addIds(body);
   body = fixDocLinks(body);
+
+  const toc = generateToc(body);
+  if (toc) {
+    body = body.replace('</h1>', `</h1>\n${toc}`);
+  }
+
+  // Add back-to-top links after each h2
+  body = body.replace(/<\/h2>/g, '</h2><a href="#" class="back-to-top" title="Back to top">&#x25B2;</a>');
+
+  // Convert Mermaid code blocks to collapsible mermaid divs
+  body = body.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
+    '<details class="mermaid-wrap"><summary>Record flowchart</summary>\n<pre class="mermaid">$1</pre>\n</details>');
 
   let page = shell
     .replace('__TITLE__', cfg.title)

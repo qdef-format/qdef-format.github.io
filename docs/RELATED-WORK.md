@@ -132,7 +132,7 @@ for URIs) was QDEF's original routing mechanism — every QDEF Record was
 wrapped in a CBOR tag identifying its Type. This was the design for most
 of the draft's early life.
 
-**Why QDEF removed CBOR tag routing** (see DESIGN.md for the full finding):
+**Why QDEF removed CBOR tag routing:**
 - A CBOR tag wraps a *single* data item, but QDEF Records are CBOR maps
   with typed key-value fields. Routing on the tag means parsing the entire
   map before recognising the Type — exactly backwards for a constrained

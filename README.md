@@ -15,7 +15,6 @@ and the canonical specification documents.
 ├── tools/                   # Hex validator (browser-side JS)
 ├── docs/                    # Specification source files (Markdown)
 │   ├── QDEF-SPEC.md
-│   ├── DESIGN.md
 │   ├── EXAMPLES.md
 │   └── IMPLEMENTATION-NOTES.md
 ├── templates/shell.html     # HTML template for content pages

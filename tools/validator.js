@@ -292,16 +292,23 @@ const STANDARD_SHAPES = {
   },
 };
 
-function getFieldDef(typeId, keyStr) {
+function getFieldDef(typeId, keyStr, nsHex) {
   if (COMMON_FIELDS[keyStr]) return COMMON_FIELDS[keyStr];
 
-  const nsEntry = typeof QDEF_REGISTRY !== 'undefined'
-    ? Object.values(QDEF_REGISTRY).find(e => e.types && e.types[String(typeId)])
-    : undefined;
-  if (nsEntry && nsEntry.types[String(typeId)]) {
-    const shape = parseShape(nsEntry.types[String(typeId)].shape);
-    if (shape && shape[keyStr]) return shape[keyStr];
+  let shape;
+  if (nsHex && typeof QDEF_REGISTRY !== 'undefined') {
+    const entry = QDEF_REGISTRY[nsHex];
+    if (entry && entry.types[String(typeId)]) {
+      shape = parseShape(entry.types[String(typeId)].shape);
+    }
   }
+  if (!shape && typeof QDEF_REGISTRY !== 'undefined') {
+    const nsEntry = Object.values(QDEF_REGISTRY).find(e => e.types && e.types[String(typeId)]);
+    if (nsEntry && nsEntry.types[String(typeId)]) {
+      shape = parseShape(nsEntry.types[String(typeId)].shape);
+    }
+  }
+  if (shape && shape[keyStr]) return shape[keyStr];
 
   const std = STANDARD_SHAPES[String(typeId)];
   if (std && std[keyStr]) return std[keyStr];
@@ -422,9 +429,11 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
   }
 
   let nsHexFlat = null;
+  let regNsHex = null;
   if (namespace) {
     const nsHex = bytesToHex(namespace.value);
     nsHexFlat = nsHex.replace(/ /g, '');
+    regNsHex = nsHexFlat;
     recLabel += ` [namespace: ${nsHex}]`;
     issues.push({ level: 'ok', text: `${recLabel}: namespace present` });
 
@@ -442,14 +451,17 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
     else recordAnn = `${nsName || nsHexFlat}`;
   } else {
     issues.push({ level: 'ok', text: `${recLabel}` });
+    if (effectiveNamespace) {
+      regNsHex = bytesToHex(effectiveNamespace.value).replace(/ /g, '');
+    }
   }
 
   if (typeIdExplicit) {
     const parity = typeId % 2 === 0 ? 'even (global)' : 'odd (scoped)';
     let typeAnn = `typeId=${typeId}`;
     let typeName = null;
-    if (nsHexFlat && typeof QDEF_REGISTRY !== 'undefined') {
-      const entry = QDEF_REGISTRY[nsHexFlat];
+    if (regNsHex && typeof QDEF_REGISTRY !== 'undefined') {
+      const entry = QDEF_REGISTRY[regNsHex];
       if (entry && entry.types[String(typeId)]) {
         const rt = entry.types[String(typeId)];
         typeName = rt.variable || rt.name;
@@ -472,7 +484,7 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
       for (const pair of mapItem.value) {
         if (pair.key && (pair.key.type === 'uint' || pair.key.type === 'nint')) {
           const k = String(pair.key.value);
-          const fd = getFieldDef(typeId, k);
+          const fd = getFieldDef(typeId, k, regNsHex);
           if (fd) {
             pair.key._ann = fd.name;
             if (pair.value && pair.value.type !== 'map' && pair.value.type !== 'array') {

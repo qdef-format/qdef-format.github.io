@@ -3,10 +3,9 @@
 Worked examples for data shapes that don't fit the simple, flat, single-
 Record cases in [`QDEF-SPEC.md`](QDEF-SPEC.md) §5. Non-normative — this
 is "how would I actually design this," not "what must every
-implementation do." See [`DESIGN.md`](DESIGN.md) for *why* the format's
-rules are shaped the way they are; this doc is the opposite direction —
-given those rules, how do you use them for something less trivial than
-one Wi-Fi credential.
+implementation do." This doc is the opposite direction from the spec —
+given the spec's rules, how do you use them for something less trivial
+than one Wi-Fi credential.
 
 ## A small structured field: an array of numbers
 

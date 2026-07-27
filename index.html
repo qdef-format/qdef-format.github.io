@@ -15,7 +15,6 @@
       <nav>
         <a href="index.html">Home</a>
         <a href="spec.html">Spec</a>
-        <a href="design.html">Design</a>
         <a href="examples.html">Examples</a>
         <a href="implementations.html">Implementations</a>
         <a href="tools/validator.html">Validator</a>
@@ -88,6 +87,12 @@
         A Wi-Fi app reads Record 1. A generic browser offers Record 2 as a
         fallback URL. Neither needs to know the other exists.
       </p>
+      <div class="note">
+        <strong>Note:</strong> the Wi-Fi (Type 100) and Open/Hint URI (Type 10) in this
+        example are illustrative — neither is an assigned standard type.
+        See the <a href="spec.html#4-the-qdef-standard-record-types">Type ID allocation</a>
+        in the spec.
+      </div>
       </div>
     </section>
 
@@ -116,11 +121,6 @@
           <h3>Specification</h3>
           <p>Full wire format spec — container framing, Record architecture, standard library types, and grammar.</p>
           <span style="color:var(--accent);font-size:0.9rem">Read the spec &rarr;</span>
-        </a>
-        <a href="design.html" class="card" style="display:block;color:inherit">
-          <h3>Design Rationale</h3>
-          <p>Why QDEF looks the way it does — mechanisms tried and removed, alternatives weighed, and open questions.</p>
-          <span style="color:var(--accent);font-size:0.9rem">Read the design doc &rarr;</span>
         </a>
         <a href="examples.html" class="card" style="display:block;color:inherit">
           <h3>Examples</h3>
