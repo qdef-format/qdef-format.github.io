@@ -116,7 +116,7 @@ Object.entries(map).forEach(([file, cfg]) => {
     .replace('__CONTENT__', body);
 
   if (cfg.banner) {
-    const banner = '<div class="spec-status"><strong>Status: Draft — work in progress.</strong> The wire format is settled and validated by two prototypes, but there is no reference library and no production use yet.</div>';
+    const banner = '<div class="spec-status"><strong>Status: Draft — work in progress.</strong> The wire format is settled and validated by two prototypes, but there is no reference library and no production use yet. <a href="https://github.com/qdef-format/qdef-format.github.io/issues" style="color:inherit">Suggest changes &rarr;</a></div>';
     page = page.replace('<main class="container content">', `<main class="container content">\n${banner}`);
   }
 
