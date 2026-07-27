@@ -26,7 +26,7 @@ Hex: `51 44 45 46 82 82 18 64 a3 00 6e 4d 79 20 43 6f 66 66 65 65 20 53 68 6f 70
   ]
   [ 2 items // Record (typeId=10) — Open/Hint URI
     10 // typeId=10 (even (global)) - Open/Hint URI
-    { 1 key
+    { 1 keys
       0: "https://example.com/coffee-menu" tstr // URI (even/critical)
     }
   ]
@@ -41,8 +41,8 @@ A scoped Record under namespace 89d414e0 (TagDrop) with typeId=1, carrying an or
 Hex: `51 44 45 46 81 83 44 89 d4 14 e0 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01`
 
 ```js
-[ 1 item // Bundle (implicit typeId=0)
-  [ 3 items // TagDrop Record (typeId=1)
+[ 1 items // Bundle (implicit typeId=0)
+  [ 3 items // TagDrop Record (typeId=1) — Content Extension
     h'89d414e0' (4 B) // namespace: 89d414e0 (TagDrop)
     1 // typeId=1 (odd (scoped)) - Content Extension
     { 2 keys
@@ -61,7 +61,7 @@ A Media Preview (type 14, even) containing a content hash and filename via Commo
 Hex: `51 44 45 46 81 83 0e a3 00 6a 74 65 78 74 2f 70 6c 61 69 6e 2a 48 12 9d a0 88 d6 d3 61 bc 2e 69 68 65 6c 6c 6f 2e 74 78 74 83 06 a1 00 6a 74 65 78 74 2f 70 6c 61 69 6e 58 1a 48 65 6c 6c 6f 20 66 72 6f 6d 20 54 61 67 44 72 6f 70 20 43 6f 6e 74 65 6e 74`
 
 ```js
-[ 1 item // Bundle (implicit typeId=0)
+[ 1 items // Bundle (implicit typeId=0)
   [ 3 items // Record (typeId=14) — Media Preview
     14 // typeId=14 (even (global)) - Media Preview
     { 3 keys
@@ -71,7 +71,7 @@ Hex: `51 44 45 46 81 83 0e a3 00 6a 74 65 78 74 2f 70 6c 61 69 6e 2a 48 12 9d a0
     }
     [ 3 items // Record (typeId=6) — Media Payload
       6 // typeId=6 (even (global)) - Media Payload
-      { 1 key
+      { 1 keys
         0: "text/plain" uint or tstr // Media Type (even/critical)
       }
       h'48656c6c6f2066726f6d2054616744726f7020436f6e74656e74' (26 B)
@@ -88,8 +88,8 @@ A scoped Record (typeId=1) under namespace 89d414e0 with three extension fields 
 Hex: `51 44 45 46 81 83 44 89 d4 14 e0 01 a3 03 64 68 69 6e 74 0b 6b 64 65 73 63 72 69 70 74 69 6f 6e 0d 42 01 02`
 
 ```js
-[ 1 item // Bundle (implicit typeId=0)
-  [ 3 items // TagDrop Record (typeId=1)
+[ 1 items // Bundle (implicit typeId=0)
+  [ 3 items // TagDrop Record (typeId=1) — Content Extension
     h'89d414e0' (4 B) // namespace: 89d414e0 (TagDrop)
     1 // typeId=1 (odd (scoped)) - Content Extension
     { 3 keys
@@ -109,10 +109,10 @@ A minimal Open/Hint URI Record (type 10, even) with just a URL field — no opti
 Hex: `51 44 45 46 81 82 0a a1 00 78 18 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 71 64 65 66`
 
 ```js
-[ 1 item // Bundle (implicit typeId=0)
+[ 1 items // Bundle (implicit typeId=0)
   [ 2 items // Record (typeId=10) — Open/Hint URI
     10 // typeId=10 (even (global)) - Open/Hint URI
-    { 1 key
+    { 1 keys
       0: "https://example.com/qdef" tstr // URI (even/critical)
     }
   ]

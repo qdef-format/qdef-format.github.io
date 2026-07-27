@@ -308,20 +308,22 @@ function annotateRecordStructure(arr, inheritedNamespace) {
     annotateItem(namespace, nsAnn);
   }
 
+  // Resolve type name (shared between typeId annotation and array annotation)
+  let typeName = null;
+  if (regNsHex && typeof QDEF_REGISTRY !== 'undefined') {
+    const entry = QDEF_REGISTRY[regNsHex];
+    if (entry && entry.types[String(typeId)]) {
+      typeName = entry.types[String(typeId)].variable || entry.types[String(typeId)].name;
+    }
+  }
+  if (!typeName && STANDARD_TYPE_NAMES[String(typeId)]) {
+    typeName = STANDARD_TYPE_NAMES[String(typeId)];
+  }
+
   // Annotate typeId
   if (typeIdExplicit) {
     const parity = typeId % 2 === 0 ? 'even (global)' : 'odd (scoped)';
     let typeAnn = `typeId=${typeId} (${parity})`;
-    let typeName = null;
-    if (regNsHex && typeof QDEF_REGISTRY !== 'undefined') {
-      const entry = QDEF_REGISTRY[regNsHex];
-      if (entry && entry.types[String(typeId)]) {
-        typeName = entry.types[String(typeId)].variable || entry.types[String(typeId)].name;
-      }
-    }
-    if (!typeName && STANDARD_TYPE_NAMES[String(typeId)]) {
-      typeName = STANDARD_TYPE_NAMES[String(typeId)];
-    }
     if (typeName) typeAnn += ` - ${typeName}`;
     annotateItem(tidItem, typeAnn);
   }
@@ -341,10 +343,7 @@ function annotateRecordStructure(arr, inheritedNamespace) {
         base = `${nsName} ${base}`;
       }
     }
-    if (typeIdExplicit) {
-      const typeName = STANDARD_TYPE_NAMES[String(typeId)] || null;
-      if (typeName) base += ` — ${typeName}`;
-    }
+    if (typeName) base += ` — ${typeName}`;
     recordAnn = base;
   }
   if (recordAnn) annotateItem(arr, recordAnn);
@@ -430,7 +429,7 @@ function renderTreeText(item, indent) {
     case 'array': {
       const items = (item.value || []).filter(i => i != null);
       if (items.length === 0) return pad + '[]' + ann;
-      let s = pad + `[ ${items.length} item${items.length !== 1 ? 's' : ''}${ann}\n`;
+      let s = pad + `[ ${items.length} items${ann}\n`;
       for (let i = 0; i < items.length; i++) {
         if (i > 0) s += '\n';
         s += renderTreeText(items[i], indent + 1);
@@ -441,7 +440,7 @@ function renderTreeText(item, indent) {
 
     case 'map': {
       if (item.value.length === 0) return pad + '{}' + ann;
-      let s = pad + `{ ${item.value.length} key${item.value.length !== 1 ? 's' : ''}\n`;
+      let s = pad + `{ ${item.value.length} keys\n`;
       for (const p of item.value) {
         const k = p.key;
         const v = p.value;
