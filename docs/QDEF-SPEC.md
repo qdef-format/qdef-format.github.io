@@ -514,7 +514,7 @@ depth — an unrecognized field, a whole unrecognized subrecord, or a whole
 subrecord's worth of its own subrecords — uses a bounded explicit stack
 instead of the call stack. A subrecord's own total byte span is always
 determined this same generic way, before any attempt to interpret its
-contents. Validated in [`rust/qdef-core`](../rust/qdef-core).
+contents.
 
 ### 3.4 Canonical Encoding
 
@@ -607,8 +607,6 @@ Java packages, XML namespaces, and MIME subtypes use, so the derived
 value behaves like a random draw rather than a likely collision with
 another implementer's bare-word choice.
 
-Prototyped in `prototype/src/header.js`'s `verifyNamespaceHint`.
-
 **No dedicated version field.** Whatever Record's map carries a
 namespace's hint/backup keys is already fully extensible — a future
 incompatible addition is a new even/critical key in it, using the same
@@ -682,13 +680,6 @@ carrier those bytes can reach provides isolation, not just the primary
 one — a future carrier added without an equivalently exclusive dispatch
 mechanism silently reintroduces full collision exposure for every even
 Type ID already in use.
-
-Prototyped end to end in `prototype/src/header.js`,
-`prototype/src/wrappers.js`'s `resolveStack`, and cross-validated
-against `rust/qdef-core` (needs no namespace-specific code at all — the
-positional prefix is already part of the one generic Record grammar).
-See `prototype/test/header.test.js` and
-`prototype/test/multi-code-namespace.test.js`.
 
 ### 3.6 Common Field Keys
 
@@ -775,10 +766,6 @@ Type's own field.
 
 **Byte cost is the same as adding any other field** — one map entry, no
 new grammar.
-
-Prototyped in `prototype/src/commonKeys.js` and
-`prototype/test/common-keys.test.js`; the criticality-rule reuse cross-
-validated against `rust/qdef-core`'s `check_criticality`.
 
 ## 4. The QDEF Standard Record Types
 
@@ -898,7 +885,7 @@ again on these bytes." A single generic resolver — reassemble fragments /
 decompress / decrypt, then re-parse as a Record, repeat until the result
 isn't a Wrapper Record — implements this for every Record Type
 that opts in, with zero code written by that Record Type's own author
-(demonstrated in `prototype/src/wrappers.js`'s `resolveStack`).
+(demonstrated in a generic Wrapper resolver).
 
 Wrapper Type IDs, authoritatively assigned by this spec document itself
 (Standards Action, `0`–`22` — see the note above the Type ID allocation
@@ -1091,8 +1078,6 @@ Adopters relying on this field SHOULD keep a periodic mirror of CoAP's
 Content-Formats table, so the numbering can be kept alive independently
 if that registry ever goes unmaintained.
 
-Prototyped in `prototype/test/media-payload.test.js`.
-
 ### 4.4 App Route (optional)
 
 A plain standard record type Record — not a wrapper — for letting a generic
@@ -1248,8 +1233,6 @@ Identification fields repeat on every code in the group, the same as
 any other per-code metadata (§4.4's encoder-etiquette note applies
 here too).
 
-Prototyped in `prototype/test/media-preview.test.js`.
-
 ### 4.6 Bundle (optional)
 
 A **Bundle** is a structural Record — not a wrapper, not application
@@ -1323,12 +1306,6 @@ Record's typeId:
 ]
 ```
 
-Prototyped in `prototype/test/bundle.test.js`: round-trip with the
-empty map omitted, an unaware decoder skipping the whole Bundle (and
-its subrecords) by Type ID alone, the namespace-scoping claim above
-verified against `header.js`'s `resolveLookupKeysDeep`, and the hint/
-backup keys degrading gracefully for a decoder that doesn't recognize
-them.
 
 ### 4.7 Signature (optional)
 
@@ -1397,15 +1374,7 @@ property, not a gap — the same way NFC Forum's own Signature RTD
 (position-since-checkpoint over a flat NDEF message, the same rule
 applied here, generalized to any array) accepts it.
 
-Prototyped in `prototype/test/signature.test.js`: signing and verifying
-top-level Records, a reordered or tampered covered Record failing
-verification, an unrelated inserted Record failing verification, an
-unaware decoder skipping the whole Record by Type ID alone, a Signature
-nested inside a Bundle covering only that Bundle's own subrecords, two
-Signature Records in the same list checkpointing independently of each
-other, and both even/odd criticality and an unsupported Algorithm value
-being reported rather than silently accepted. Ed25519 (COSE Algorithm
-`-8`) is the only algorithm this prototype implements; the Algorithm
+Ed25519 (COSE Algorithm `-8`) is the only algorithm currently defined; the Algorithm
 field itself is wire-compatible with adding others later.
 
 ## 5. Adopting QDEF for an existing application-specific format
@@ -1473,7 +1442,7 @@ codes are only ever scanned by its own app, never clicked or typed — so per
 "When QDEF earns its place" (§1), going through QDEF's byte-mode container
 (magic header included) is the right call.
 
-Registers one Record Type, say `950`, for the plain secret-key bytes:
+Registers one Record Type (say `950` — an illustrative placeholder, not a protected allocation), for the plain secret-key bytes:
 
 ```
 [ 950, {
@@ -1504,8 +1473,3 @@ to mean. This is exactly the case Encrypt's Algorithm/Key Algorithm fields
 read by itself, so it has nothing to gain from self-describing it — those
 fields exist for the *different* case of two unrelated apps needing to
 interoperate on a key transfer, not this one.
-
-This exact scenario — 3 data fragments + 1 XOR parity fragment, one
-fragment deliberately dropped and recovered, then the full
-Split→Encrypt→plain chain decrypted and re-parsed — is exercised end to end
-in `prototype/test/roundtrip.test.js`.
