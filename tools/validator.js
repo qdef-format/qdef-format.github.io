@@ -596,14 +596,12 @@ function validateQDEPayload(hexInput) {
       qr.addData(qrStr, 'Byte');
       qr.make();
       qrWrapper.innerHTML = qr.createImgTag(4, 4);
-      let info = `${bytes.length} byte(s) in 8-bit QR`;
-      const ver = qr.getModuleCount() >= 1 && qr.getModuleCount() <= 40
-        ? `(version ${qr.getModuleCount() <= 14 ? 'small' : qr.getModuleCount() <= 26 ? 'medium' : 'large'})`
-        : '';
-      if (ver) info += ` ${ver}`;
-      if (!result.valid) {
-        info += ' — ⚠ encodes an invalid QDEF payload';
-      }
+      const mc = qr.getModuleCount();
+      const ver = (mc - 17) / 4;
+      let info = `${bytes.length} B encoded`;
+      info += ` · version ${ver} (${mc}×${mc})`;
+      info += ` · ECC L`;
+      info += ` · ${result.valid ? '' : '⚠ invalid payload'}`;
       qrInfo.textContent = info;
       qrSection.style.display = '';
     } catch (e) {
