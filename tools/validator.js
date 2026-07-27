@@ -598,10 +598,13 @@ function validateQDEPayload(hexInput) {
       qrWrapper.innerHTML = qr.createImgTag(4, 4);
       const mc = qr.getModuleCount();
       const ver = (mc - 17) / 4;
-      let info = `${bytes.length} B encoded`;
-      info += ` · version ${ver} (${mc}×${mc})`;
-      info += ` · ECC L`;
-      info += ` · ${result.valid ? '' : '⚠ invalid payload'}`;
+      let info = `${bytes.length} B · v${ver} (${mc}×${mc}) · ECC L`;
+      if (bytes.length <= 400) info += ' · super reliable';
+      else if (bytes.length <= 600) info += ' · average reliability';
+      else if (bytes.length <= 800) info += ' · dense';
+      else if (bytes.length <= 1000) info += ' · super dense';
+      else info += ' · may be difficult to scan';
+      if (!result.valid) info += ' · ⚠ invalid payload';
       qrInfo.textContent = info;
       qrSection.style.display = '';
     } catch (e) {
