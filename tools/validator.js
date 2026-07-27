@@ -581,6 +581,40 @@ function validateQDEPayload(hexInput) {
     treeDiv.innerHTML = `<h3 style="margin-bottom:0.5rem">CBOR Structure</h3><div class="tree"><ul>${fmtCBOR(result.root)}</ul></div>`;
   }
 
+  // QR Code generation
+  const qrSection = document.getElementById('qr-section');
+  const qrWrapper = document.getElementById('qr-canvas-wrapper');
+  const qrInfo = document.getElementById('qr-info');
+  qrWrapper.innerHTML = '';
+  if (typeof qrcode !== 'undefined') {
+    try {
+      let qrStr = '';
+      for (let i = 0; i < bytes.length; i++) {
+        qrStr += String.fromCharCode(bytes[i]);
+      }
+      const qr = qrcode(0, 'L');
+      qr.addData(qrStr, 'Byte');
+      qr.make();
+      qrWrapper.innerHTML = qr.createImgTag(4, 4);
+      let info = `${bytes.length} byte(s) in 8-bit QR`;
+      const ver = qr.getModuleCount() >= 1 && qr.getModuleCount() <= 40
+        ? `(version ${qr.getModuleCount() <= 14 ? 'small' : qr.getModuleCount() <= 26 ? 'medium' : 'large'})`
+        : '';
+      if (ver) info += ` ${ver}`;
+      if (!result.valid) {
+        info += ' — ⚠ encodes an invalid QDEF payload';
+      }
+      qrInfo.textContent = info;
+      qrSection.style.display = '';
+    } catch (e) {
+      qrWrapper.innerHTML = `<span style="color:#721c24">QR capacity exceeded (${bytes.length} bytes). Try fewer examples.</span>`;
+      qrInfo.textContent = '';
+      qrSection.style.display = '';
+    }
+  } else {
+    qrSection.style.display = 'none';
+  }
+
   output.classList.add('visible');
 }
 

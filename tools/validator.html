@@ -8,6 +8,7 @@
   <link rel="icon" href="../assets/logo.png" type="image/png">
   <link rel="stylesheet" href="../assets/style.css">
   <script src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.0/dist/iife/reader/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <style>
     #scanOverlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.85);
@@ -84,6 +85,13 @@
     <div id="validator-output">
       <div id="validation-result" class="validation-result"></div>
       <div id="cbor-tree" class="tree"></div>
+      <div id="qr-section" style="margin-top:1.5rem;display:none">
+        <h3 style="margin-bottom:0.5rem">QR Code</h3>
+        <div style="display:flex;align-items:start;gap:1rem;flex-wrap:wrap">
+          <div id="qr-canvas-wrapper" style="background:#fff;padding:12px;border-radius:var(--radius);display:inline-block"></div>
+          <div id="qr-info" style="font-size:0.85rem;color:var(--text-muted);max-width:300px"></div>
+        </div>
+      </div>
     </div>
   </main>
 
