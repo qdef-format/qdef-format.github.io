@@ -42,8 +42,8 @@ Hex: `51 44 45 46 81 83 44 89 d4 14 e0 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01
 
 ```js
 [
+  h'89d414e0'  // namespace: 89d414e0
   1  // typeId=1 (odd (scoped))
-  // namespace: 89 d4 14 e0
   {
     0: h'536f6d6544657374'  // even/critical
     2: 1  // even/critical
@@ -71,7 +71,7 @@ Hex: `51 44 45 46 81 83 0e a3 00 6a 74 65 78 74 2f 70 6c 61 69 6e 2a 48 12 9d a0
     {
       0: "text/plain"  // Media Type (even/critical)
     }
-    h'48 65 6c 6c 6f 20 66 72 6f 6d 20 54 61 67 44 72 ...'  // payload (26 B)
+    h'48656c6c6f206672...'
   ]
 ]
 ```
@@ -85,8 +85,8 @@ Hex: `51 44 45 46 81 83 44 89 d4 14 e0 01 a3 03 64 68 69 6e 74 0b 6b 64 65 73 63
 
 ```js
 [
+  h'89d414e0'  // namespace: 89d414e0
   1  // typeId=1 (odd (scoped))
-  // namespace: 89 d4 14 e0
   {
     3: "hint"  // odd/optional
     11: "description"  // odd/optional

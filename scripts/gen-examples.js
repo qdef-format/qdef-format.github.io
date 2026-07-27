@@ -8,7 +8,7 @@ const assetPath = path.join(ROOT, 'assets', 'cbor-util.js');
 eval(fs.readFileSync(assetPath, 'utf-8'));
 const {
   hexToBytes, bytesToHex, CBORReader,
-  COMMON_FIELDS, STANDARD_TYPE_NAMES, STANDARD_SHAPES, fieldName
+  annotateRecordStructure
 } = CBOR_UTIL;
 
 // ── Formatting helpers ────────────────────────────────────────────────
@@ -30,108 +30,7 @@ function fmtInline(item) {
   }
 }
 
-function parity(keyNum) {
-  return keyNum % 2 === 0 ? 'even/critical' : 'odd/optional';
-}
-
-// ── Tree rendering ───────────────────────────────────────────────────
-
-function render(item, typeId, indent) {
-  const pad = '  '.repeat(indent);
-  if (!item) return pad + '(null)';
-
-  switch (item.type) {
-    case 'uint':
-    case 'nint':
-      return pad + String(item.value);
-    case 'bytes':
-      return pad + `h'${bytesToHex(item.value)}'`;
-    case 'tstr':
-      return pad + `"${item.value}"`;
-    case 'simple':
-      return pad + (item.value === 20 ? 'false' : item.value === 21 ? 'true' : `simple(${item.value})`);
-    case 'tag':
-      return pad + `tag(${item.tag})\n` + render(item.value, typeId, indent);
-    case 'array':
-      return renderArray(item, typeId, indent);
-    case 'map':
-      return renderMap(item, typeId, indent);
-    default:
-      return pad + `(${item.type})`;
-  }
-}
-
-function renderArray(arr, typeId, indent) {
-  const pad = '  '.repeat(indent);
-  if (arr.value.length === 0) return pad + '[]';
-  let s = pad + '[\n';
-  for (let i = 0; i < arr.value.length; i++) {
-    if (i > 0) s += '\n';
-    s += render(arr.value[i], typeId, indent + 1);
-  }
-  s += '\n' + pad + ']';
-  return s;
-}
-
-function renderMap(map, typeId, indent) {
-  const pad = '  '.repeat(indent);
-  if (map.value.length === 0) return pad + '{}';
-  let s = pad + '{\n';
-  for (let i = 0; i < map.value.length; i++) {
-    const p = map.value[i];
-    const k = p.key;
-    const v = p.value;
-    const keyNum = (k.type === 'uint' || k.type === 'nint') ? k.value : null;
-    const fn = keyNum !== null ? fieldName(typeId, keyNum) : null;
-    const par = keyNum !== null ? parity(keyNum) : '';
-    let ann = '';
-    if (fn) ann = `  // ${fn} (${par})`;
-    else if (par) ann = `  // ${par}`;
-    s += '  '.repeat(indent + 1) + `${fmtInline(k)}: ${fmtInline(v)}${ann}\n`;
-  }
-  s += pad + '}';
-  return s;
-}
-
-// ── Record analysis ───────────────────────────────────────────────────
-
-function analyzeRecord(arr, indent) {
-  const items = arr.value || [];
-  let idx = 0, namespace = null;
-
-  // optional namespace
-  if (idx < items.length && items[idx].type === 'bytes' && items[idx].value.length <= 8) {
-    namespace = items[idx];
-    idx++;
-  }
-
-  // typeId
-  let typeId = 0, typeIdExplicit = false;
-  if (idx < items.length && (items[idx].type === 'uint' || items[idx].type === 'nint')) {
-    typeId = items[idx].value;
-    typeIdExplicit = true;
-    idx++;
-  }
-
-  // map
-  let mapItem = null;
-  if (idx < items.length && items[idx].type === 'map') {
-    mapItem = items[idx];
-    idx++;
-  }
-
-  // payload
-  let payload = null;
-  if (idx < items.length && items[idx].type !== 'array') {
-    payload = items[idx];
-    idx++;
-  }
-
-  // subrecords
-  const subrecords = items.slice(idx).filter(i => i.type === 'array');
-
-  return { namespace, typeId, typeIdExplicit, mapItem, payload, subrecords };
-}
+// ── Annotated tree rendering ─────────────────────────────────────────
 
 function renderExample(ex) {
   const bytes = hexToBytes(ex.hex);
@@ -141,6 +40,13 @@ function renderExample(ex) {
 
   if (!root || root.type !== 'array') {
     return `\`\`\`js\n${ex.hex}\n\`\`\`\n\n*Not a valid QDEF Bundle.*`;
+  }
+
+  // Annotate all records using the shared annotation logic
+  for (const item of root.value) {
+    if (item.type === 'array') {
+      annotateRecordStructure(item);
+    }
   }
 
   let s = '```js\n';
@@ -157,7 +63,7 @@ function renderBundleItems(items) {
   if (items.length === 1) {
     const item = items[0];
     if (item.type === 'array') {
-      return renderRecordFull(item, 0);
+      return renderAnnotatedRecord(item, 0);
     }
     return '  ' + fmtInline(item);
   }
@@ -165,7 +71,7 @@ function renderBundleItems(items) {
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     if (item.type === 'array') {
-      s += renderRecordFull(item, 1);
+      s += renderAnnotatedRecord(item, 1);
     } else {
       s += '  ' + fmtInline(item);
     }
@@ -175,51 +81,61 @@ function renderBundleItems(items) {
   return s;
 }
 
-function renderRecordFull(arr, indent) {
-  const ra = analyzeRecord(arr, indent);
+function renderAnnotatedRecord(arr, indent) {
   const pad = '  '.repeat(indent);
+  const items = (arr.value || []).filter(i => i != null);
   let s = pad + '[\n';
 
-  // typeId line with annotation
-  if (ra.typeIdExplicit) {
-    const typeName = STANDARD_TYPE_NAMES[String(ra.typeId)] || null;
-    const typeParity = ra.typeId % 2 === 0 ? 'even (global)' : 'odd (scoped)';
-    let ann = `  // typeId=${ra.typeId} (${typeParity})`;
-    if (typeName) ann += ` - ${typeName}`;
-    s += pad + '  ' + ra.typeId + ann + '\n';
-  } else {
-    s += pad + '  ' + '0 (implicit)  // typeId=0 (even (global)) - Bundle\n';
-  }
+  let hadSub = false;
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
 
-  // namespace
-  if (ra.namespace) {
-    s += pad + `  // namespace: ${bytesToHex(ra.namespace.value)}\n`;
-  }
+    if (item.type === 'array') {
+      hadSub = true;
+      s += renderAnnotatedRecord(item, indent + 1);
+      if (i < items.length - 1) s += '\n';
+      continue;
+    }
 
-  // map
-  if (ra.mapItem) {
-    s += renderMap(ra.mapItem, ra.typeId, indent + 1) + '\n';
-  }
+    const ann = item._ann ? `  // ${item._ann}` : '';
+    const prefix = pad + '  ';
 
-  // payload
-  if (ra.payload) {
-    if (ra.payload.type === 'bytes') {
-      const hex = bytesToHex(ra.payload.value);
-      const preview = hex.length > 48 ? hex.slice(0, 48) + '...' : hex;
-      s += pad + `  h'${preview}'  // payload (${ra.payload.value.length} B)\n`;
+    if (item.type === 'map') {
+      s += renderMapAnnotated(item, indent + 1);
+      s += '\n';
+    } else if (item.type === 'bytes') {
+      if (item._ann && item._ann.startsWith('namespace:')) {
+        s += prefix + `h'${bytesToHex(item.value).replace(/ /g, '')}'${ann}\n`;
+      } else {
+        s += prefix + fmtInline(item) + ann + '\n';
+      }
     } else {
-      s += pad + '  ' + fmtInline(ra.payload) + '  // payload\n';
+      s += prefix + fmtInline(item) + ann + '\n';
     }
   }
 
-  // subrecords
-  for (let si = 0; si < ra.subrecords.length; si++) {
-    s += renderRecordFull(ra.subrecords[si], indent + 1);
-    if (si < ra.subrecords.length - 1) s += '\n';
-  }
-
-  if (ra.subrecords.length > 0) s += '\n';
+  if (hadSub) s += '\n';
   s += pad + ']';
+  return s;
+}
+
+function renderMapAnnotated(map, indent) {
+  const pad = '  '.repeat(indent);
+  if (map.value.length === 0) return pad + '{}';
+  let s = pad + '{';
+  for (let i = 0; i < map.value.length; i++) {
+    const p = map.value[i];
+    const k = p.key;
+    const v = p.value;
+    let ann = '';
+    if (k._ann) {
+      ann = `  // ${k._ann}`;
+    } else if ((k.type === 'uint' || k.type === 'nint') && typeof k.value === 'number') {
+      ann = `  // ${k.value % 2 === 0 ? 'even/critical' : 'odd/optional'}`;
+    }
+    s += '\n' + '  '.repeat(indent + 1) + `${fmtInline(k)}: ${fmtInline(v)}${ann}`;
+  }
+  s += '\n' + pad + '}';
   return s;
 }
 

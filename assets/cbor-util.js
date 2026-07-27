@@ -264,8 +264,11 @@ function analyzeRecord(arr) {
     idx++;
   }
 
-  const hasMap = idx < items.length && items[idx].type === 'map';
-  if (hasMap) idx++;
+  let mapItem = null;
+  if (idx < items.length && items[idx].type === 'map') {
+    mapItem = items[idx];
+    idx++;
+  }
 
   let hasPayload = false, payloadItem = null;
   if (idx < items.length && items[idx].type !== 'array') {
@@ -276,7 +279,100 @@ function analyzeRecord(arr) {
 
   const subrecords = items.slice(idx).filter(i => i.type === 'array');
 
-  return { namespace, typeId, typeIdExplicit, tidItem, hasMap, payloadItem, hasPayload, subrecords };
+  return { namespace, typeId, typeIdExplicit, tidItem, mapItem, hasPayload, payloadItem, subrecords };
+}
+
+// ── In-place Record annotation (shared between validator and docs) ─────
+
+function annotateItem(item, text) {
+  if (item) item._ann = text;
+}
+
+function annotateRecordStructure(arr, inheritedNamespace) {
+  const ra = analyzeRecord(arr);
+  const { namespace, typeId, typeIdExplicit, tidItem, mapItem, payloadItem, subrecords } = ra;
+
+  const effectiveNamespace = namespace || inheritedNamespace;
+  let regNsHex = null;
+  if (effectiveNamespace) {
+    regNsHex = bytesToHex(effectiveNamespace.value).replace(/ /g, '');
+  }
+
+  // Annotate namespace
+  if (namespace) {
+    let nsAnn = 'namespace: ' + bytesToHex(namespace.value).replace(/ /g, '');
+    if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[regNsHex]) {
+      const entry = QDEF_REGISTRY[regNsHex];
+      nsAnn += ` (${entry.variable || entry.name})`;
+    }
+    annotateItem(namespace, nsAnn);
+  }
+
+  // Annotate typeId
+  if (typeIdExplicit) {
+    const parity = typeId % 2 === 0 ? 'even (global)' : 'odd (scoped)';
+    let typeAnn = `typeId=${typeId} (${parity})`;
+    let typeName = null;
+    if (regNsHex && typeof QDEF_REGISTRY !== 'undefined') {
+      const entry = QDEF_REGISTRY[regNsHex];
+      if (entry && entry.types[String(typeId)]) {
+        typeName = entry.types[String(typeId)].variable || entry.types[String(typeId)].name;
+      }
+    }
+    if (!typeName && STANDARD_TYPE_NAMES[String(typeId)]) {
+      typeName = STANDARD_TYPE_NAMES[String(typeId)];
+    }
+    if (typeName) typeAnn += ` - ${typeName}`;
+    annotateItem(tidItem, typeAnn);
+  }
+
+  // Annotate array itself with record description
+  let recordAnn = '';
+  if (typeId === 0 && !typeIdExplicit) {
+    recordAnn = 'Bundle (implicit typeId=0)';
+  } else if (typeId === 0 && typeIdExplicit) {
+    recordAnn = 'Bundle (typeId=0)';
+  } else {
+    let base = `Record (typeId=${typeId})`;
+    if (regNsHex && typeof QDEF_REGISTRY !== 'undefined') {
+      const entry = QDEF_REGISTRY[regNsHex];
+      if (entry) {
+        const nsName = entry.variable || entry.name;
+        base = `${nsName} ${base}`;
+      }
+    }
+    if (typeIdExplicit) {
+      const typeName = STANDARD_TYPE_NAMES[String(typeId)] || null;
+      if (typeName) base += ` — ${typeName}`;
+    }
+    recordAnn = base;
+  }
+  if (recordAnn) annotateItem(arr, recordAnn);
+
+  // Annotate map keys
+  if (mapItem) {
+    for (const pair of mapItem.value) {
+      if (pair.key && (pair.key.type === 'uint' || pair.key.type === 'nint')) {
+        const k = String(pair.key.value);
+        const fd = getFieldDef(typeId, k, regNsHex);
+        const keyParity = typeof pair.key.value === 'number'
+          ? (pair.key.value % 2 === 0 ? 'even/critical' : 'odd/optional') : '';
+        if (fd) {
+          annotateItem(pair.key, keyParity ? `${fd.name} (${keyParity})` : fd.name);
+          if (pair.value && pair.value.type !== 'map' && pair.value.type !== 'array') {
+            annotateItem(pair.value, fd.type);
+          }
+        }
+      }
+    }
+  }
+
+  // Recurse into subrecords
+  for (const sub of subrecords) {
+    annotateRecordStructure(sub, effectiveNamespace);
+  }
+
+  return { namespace, typeId, typeIdExplicit, mapItem, payloadItem, subrecords, effectiveNamespace };
 }
 
 // ── Global registration ───────────────────────────────────────────────
@@ -292,6 +388,8 @@ global.CBOR_UTIL = {
   getFieldDef,
   fieldName,
   analyzeRecord,
+  annotateItem,
+  annotateRecordStructure,
 };
 
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

@@ -3,7 +3,7 @@
 const {
   hexToBytes, bytesToHex, CBORReader,
   COMMON_FIELDS, STANDARD_TYPE_NAMES, STANDARD_SHAPES,
-  parseShape, getFieldDef
+  parseShape, getFieldDef, annotateItem
 } = CBOR_UTIL;
 
 const QDEF_MAGIC = new Uint8Array([0x51, 0x44, 0x45, 0x46]);
@@ -137,10 +137,6 @@ function validateQDEF(bytes) {
   }
 
   return { valid: issues.filter(i => i.level === 'error').length === 0, root, issues };
-}
-
-function annotateItem(item, text) {
-  if (item) item._ann = text;
 }
 
 function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
