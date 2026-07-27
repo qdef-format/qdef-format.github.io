@@ -10,7 +10,7 @@ Record Type definitions. Each hex string is validated by the CI suite
 
 ## Wi-Fi + URL Bundle
 
-A Bundle of two Records — an application-defined Wi-Fi credential (type 100) and a standard Open/Hint URI (type 10) — showing how custom and standard types coexist.
+A Bundle of two Records — an illustrative Wi-Fi credential (type 100) and a standard Open/Hint URI (type 10). Note: type 100 is not an assigned standard type; it serves only as a hypothetical example.
 
 Hex: `51 44 45 46 82 82 18 64 a3 00 6e 4d 79 20 43 6f 66 66 65 65 20 53 68 6f 70 02 68 67 75 65 73 74 31 32 33 04 02 82 0a a1 00 78 1f 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 63 6f 66 66 65 65 2d 6d 65 6e 75`
 
