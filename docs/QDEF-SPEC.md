@@ -434,6 +434,20 @@ disjoint.
 All other keys are positive integers (`> 0`) governed by that Record
 Type's own field numbering, with even/odd criticality (§3.2).
 
+### Typical use of reserved keys
+
+| Key | Typical application | Example |
+|-----|-------------------|---------|
+| `0` | Primary content | Media Payload carries image bytes; Compress carries deflated stream; Open/Hint URI carries the URL; App Route carries the domain |
+| `1` | Content descriptor | Media Payload describes key 0's MIME type; Open/Hint URI gives the link text; App Route labels the routing target |
+| `-1` (ID) | Intra-container correlation | A Signature Record references its covered Records by ID; a Split fragment shares ID with other fragments in the group |
+| `-3` (UUID) | Cross-session identity | A Media Payload carries the same UUID across scans so a client can deduplicate content it already saw on a different QR code |
+
+An application type that carries a heavy binary blob and a short label
+should use key 0 for the blob and key 1 for the label — this is the
+convention all standard types follow, and generic tools will render the
+pair consistently.
+
 ## 4. The QDEF Standard Record Types
 
 QDEF is a *format plus a set of standard record types*, not just the
