@@ -3,7 +3,8 @@
 const {
   hexToBytes, bytesToHex, CBORReader,
   COMMON_FIELDS, STANDARD_TYPE_NAMES, STANDARD_SHAPES,
-  parseShape, getFieldDef, annotateItem
+  parseShape, getFieldDef, annotateItem,
+  annotateRecordStructure
 } = CBOR_UTIL;
 
 const QDEF_MAGIC = new Uint8Array([0x51, 0x44, 0x45, 0x46]);
@@ -125,7 +126,9 @@ function validateQDEF(bytes) {
     root = null;
   } else if (root && root.type === 'array') {
     issues.push({ level: 'ok', text: `Root is a CBOR array with ${root.value.length} item(s)` });
-    // Analyze Record structure
+    // Annotate using the shared function (same as examples page)
+    annotateRecordStructure(root);
+    // Analyze Record structure for validation issues
     analyzeRecord(root, issues, 'Root', 0);
   } else if (!root) {
     issues.push({ level: 'warn', text: `No CBOR data found after magic header` });
@@ -238,23 +241,15 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
       recLabel += ` [namespace: ${nsHex}]`;
       issues.push({ level: 'ok', text: `${recLabel}: namespace present` });
 
-      let nsAnn = `namespace: ${nsHexFlat}`;
       let nsName = null;
       if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[nsHexFlat]) {
         const entry = QDEF_REGISTRY[nsHexFlat];
         nsName = entry.variable || entry.name;
-        nsAnn += ` (${nsName})`;
         issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}→ ${nsName} (${entry.name})` });
       }
-      annotateItem(namespace, nsAnn);
 
       if (recordAnn) recordAnn = `${nsName || nsHexFlat} ${recordAnn}`;
       else recordAnn = `${nsName || nsHexFlat}`;
-    }
-
-    if (nsAnnotation) {
-      const annText = nsAnnotation.value;
-      annotateItem(nsAnnotation, `ns annotation: "${annText}"`);
     }
 
       } else {

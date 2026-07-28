@@ -79,9 +79,6 @@ if (fs.existsSync(OUT)) {
   fs.rmSync(OUT, { recursive: true });
 }
 
-// Regenerate EXAMPLES.md from shared validator examples data
-require('./gen-examples');
-
 const docsDir = path.join(ROOT, 'docs');
 const map = {
   'QDEF-SPEC.md': { out: 'spec.html', title: 'Specification', desc: 'QDEF wire format specification.', banner: true },
@@ -254,6 +251,11 @@ for (const ns of namespaces) {
 const registryJs = 'const QDEF_REGISTRY = ' + JSON.stringify(nsById, null, 2) + ';\n';
 fs.writeFileSync(path.join(OUT, 'assets', 'registry-data.js'), registryJs);
 console.log('Wrote ' + path.join(OUT, 'assets', 'registry-data.js'));
+
+// Regenerate EXAMPLES.md using the same registry data.
+// Pass the already-built nsById to avoid re-parsing registry.rec.
+globalThis.QDEF_REGISTRY = nsById;
+require('./gen-examples');
 
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 console.log('Done');

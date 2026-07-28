@@ -6,7 +6,8 @@ const ROOT = path.resolve(__dirname, '..');
 
 // Build registry from registry.rec so annotateRecordStructure can resolve
 // namespace-scoped type names and field definitions.
-(() => {
+// If already set by the caller (build.js), skip re-parsing.
+if (!globalThis.QDEF_REGISTRY) {
   const records = recfile.parse(path.join(ROOT, 'registry.rec'));
   const namespaces = recfile.getFlat(records, 'Namespace');
   const recordTypes = recfile.getFlat(records, 'RecordType');
@@ -33,7 +34,7 @@ const ROOT = path.resolve(__dirname, '..');
     }
   }
   globalThis.QDEF_REGISTRY = byId;
-})();
+}
 
 // Shared CBOR decoder + field metadata + annotation + tree renderer.
 const assetPath = path.join(ROOT, 'assets', 'cbor-util.js');
