@@ -215,27 +215,42 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
   if (namespace) {
     const nsHex = bytesToHex(namespace.value);
     nsHexFlat = nsHex.replace(/ /g, '');
-    regNsHex = nsHexFlat;
-    recLabel += ` [namespace: ${nsHex}]`;
-    issues.push({ level: 'ok', text: `${recLabel}: namespace present` });
 
-    let nsAnn = `namespace: ${nsHexFlat}`;
-    let nsName = null;
-    if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[nsHexFlat]) {
-      const entry = QDEF_REGISTRY[nsHexFlat];
-      nsName = entry.variable || entry.name;
-      nsAnn += ` (${nsName})`;
-      issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}→ ${nsName} (${entry.name})` });
+    if (namespace.value.length === 0) {
+      // Empty bstr = inherit marker
+      if (inheritedNamespace) {
+        const parentHex = bytesToHex(inheritedNamespace.value).replace(/ /g, '');
+        regNsHex = parentHex;
+        issues.push({ level: 'ok', text: `${recLabel}: inherits namespace [${parentHex}] (h'' marker)` });
+        annotateItem(namespace, `inherit namespace (h'') → [${parentHex}]`);
+      } else {
+        issues.push({ level: 'error', text: `${recLabel}: empty namespace marker (h'') but no parent namespace to inherit` });
+        annotateItem(namespace, `inherit marker (h'') — no parent`);
+      }
+    } else {
+      regNsHex = nsHexFlat;
+      recLabel += ` [namespace: ${nsHex}]`;
+      issues.push({ level: 'ok', text: `${recLabel}: namespace present` });
+
+      let nsAnn = `namespace: ${nsHexFlat}`;
+      let nsName = null;
+      if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[nsHexFlat]) {
+        const entry = QDEF_REGISTRY[nsHexFlat];
+        nsName = entry.variable || entry.name;
+        nsAnn += ` (${nsName})`;
+        issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}→ ${nsName} (${entry.name})` });
+      }
+      annotateItem(namespace, nsAnn);
+
+      if (recordAnn) recordAnn = `${nsName || nsHexFlat} ${recordAnn}`;
+      else recordAnn = `${nsName || nsHexFlat}`;
     }
-    annotateItem(namespace, nsAnn);
 
     if (nsAnnotation) {
       const annText = nsAnnotation.value;
       annotateItem(nsAnnotation, `ns annotation: "${annText}"`);
     }
 
-    if (recordAnn) recordAnn = `${nsName || nsHexFlat} ${recordAnn}`;
-    else recordAnn = `${nsName || nsHexFlat}`;
   } else {
     issues.push({ level: 'ok', text: `${recLabel}` });
     if (effectiveNamespace) {

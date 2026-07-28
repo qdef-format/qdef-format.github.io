@@ -58,11 +58,17 @@ for (const ex of VALIDATOR_EXAMPLES) {
 
 // ── Additional edge cases ──────────────────────────────────────────────
 
-test('Odd typeId without namespace (valid in new grammar — no parity rule)',
+test('Single uint global typeId',
   '51 44 45 46 81 83 01 a0', true);
 
-test('Bundle with payload (key 0 check only)',
+test('Single uint with payload at key 0',
   '51 44 45 46 82 01 a0', true);
+
+test('Inherit marker with no parent namespace should error',
+  '51 44 45 46 81 83 40 01 a0', false);
+
+// Namespace cascade from validator-examples — just test it round-trips
+// (it has expectValid: true, so the existing loop covers it)
 
 test('Too short (3 bytes)',
   '51 44 45', false);

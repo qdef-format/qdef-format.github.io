@@ -40,5 +40,11 @@
     descriptor: 'A payload missing the QDEF magic header — the validator falls back to raw CBOR parsing and reports the mismatch.',
     expectValid: true,
     hex: '00 01 02 03 81 01'
+  },
+  {
+    label: 'Namespace cascade (inherit marker)',
+    descriptor: 'A Bundle with namespace and ns annotation, subrecord uses h\'\' to inherit the namespace.',
+    expectValid: true,
+    hex: '51 44 45 46 83 44 89 D4 14 E0 67 54 61 67 44 72 6F 70 84 40 01 65 52 6F 75 74 65 A2 00 44 64 65 73 74 02 01'
   }
 ];
