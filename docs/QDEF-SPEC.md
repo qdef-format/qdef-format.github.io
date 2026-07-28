@@ -133,9 +133,10 @@ namespace?, ns_annotation?, typeId*, type_annotation?, map?, subrecord*
   namespace, never load-bearing for routing. Present only if a
   namespace precedes it.
 - **typeId** (optional): zero or more consecutive CBOR **uints** (major
-  type 0). Leading uint `0` = standard QDEF type (§4) — always global,
-  unaffected by any namespace. Leading uint > `0` = app type, scoped
-  by namespace if present. Absent (no uints) = **Bundle**.
+  type 0). Global when no namespace is present; scoped to the namespace
+  otherwise. Low values `1`–`22` are reserved for standard QDEF types
+  (§4); all other values are available for application types. Absent
+  (no uints) = **Bundle**.
 - **type_annotation** (optional): a **text string** immediately after
   the last typeId uint — a human-readable label for the type, never
   load-bearing. Present only if at least one uint precedes it.
@@ -159,11 +160,10 @@ using ordinary CBOR array-skipping, without Record-grammar knowledge.
 |---|---|
 | `[ [ ... ], ... ]` | Bundle (no ns, no typeId) |
 | `[h'ns', [ ... ], ...]` | Bundle with namespace |
-| `[N, { ... }]` | App type, no namespace |
+| `[N, { ... }]` | App type (no namespace), or standard type (§4) when N is 1–22 |
 | `[N, "name", { ... }]` | App type with type annotation |
 | `[h'ns', "name", N, { ... }]` | Namespace + ns annotation + type |
 | `[h'ns', N, "name", { ... }]` | Namespace + type + type annotation |
-| `[0, N, { ... }]` | Standard type (global, ignores ns) |
 | `[h'', N, { ... }]` | App type inheriting parent's ns |
 
 ### TypeId + Namespace system
@@ -182,7 +182,7 @@ namespace is globally the Split wrapper (§4.1). The same `[2]` within
 a namespace `h'deadbeef'` is an app-chosen type, unrelated to Split.
 
 Standard QDEF Record Types (§4) are global (no namespace) with reserved
-low typeId numbers 2–22. Application types are global when no namespace
+low typeId numbers 1–22. Application types are global when no namespace
 is declared, or scoped when one is. The X.X.X hierarchical space is
 shared — namespace presence, not the typeId value, determines scope.
 
@@ -385,7 +385,7 @@ QDEF [h'deadbeef', [h'', 100, {2: "child"}]]    // Explicit inherit
 ```
 
 Standard QDEF Record Types (§4) use global (no-namespace) typeIds with
-reserved low numbers 2–22. An app could assign `[2]` inside its own
+reserved low numbers 1–22. An app could assign `[2]` inside its own
 namespace for a completely different purpose — no collision with Split,
 because the namespace is different.
 
@@ -470,7 +470,7 @@ namespace. The wire shape is always the full array. Standard types are
 global (no namespace bstr) by construction; the same typeId number
 inside an app-chosen namespace is a different, unrelated type.
 
-**Standard record type IDs** use the low range 2–22, reserved for the
+**Standard record type IDs** use the low range 1–22, reserved for the
 QDEF spec. Higher numbers are available for apps, with or without a
 namespace for scoping.
 
@@ -574,7 +574,7 @@ application needing ciphertext indistinguishable from random should
 keep its own encryption entirely inside an opaque registered blob (§5)
 instead.
 
-**Fragment chunking (Type 2).** The spec must fix *how* the original bytes
+**Fragment chunking (Split, Type 1).** The spec must fix *how* the original bytes
 are sliced, not just what fields describe the result, or two independent
 encoders/decoders can't agree on wire bytes. Fixed rule:
 
@@ -805,8 +805,8 @@ The identified content itself is carried as a subrecord, typically a
 §4.3 Media Payload:
 
 ```
-[ 0, 14, { 2: "image/png", 3: h'...', 5: "photo.png" },
-  [ 0, 6, { 0: h'<payload bytes>', 2: "image/png" } ] ]
+[ 7, { 2: "image/png", 3: h'...', 5: "photo.png" },
+  [ 3, { 0: h'<payload bytes>', 1: "image/png" } ] ]
 ```
 
 **Why not put identification fields on Media Payload's own map?** §4.3
@@ -817,7 +817,7 @@ instead of growing Media Payload's own field set.
 
 **When Split is present, Split MUST be outermost, with Media Preview as
 its subrecord** — not the reverse. A decoder that doesn't recognize
-`[14]` (Media Preview) skips the entire Record, including anything
+`[7]` (Media Preview) skips the entire Record, including anything
 nested inside it. If Media Preview wrapped Split instead, an old
 Split-only decoder that has never heard of Media Preview would lose the
 ability to reassemble the fragment group at all. With Split outermost,
@@ -825,8 +825,8 @@ that same old decoder just skips the unrecognized Media Preview
 subrecord (§3.2) and reassembles correctly regardless:
 
 ```
-[ 0, 2, { 0: h'<fragment 0>', 2: h'<group_id>', 4: 0, 6: 3, 7: 9 },
-  [ 0, 14, { 2: "image/png", 3: h'...', 5: "photo.png" } ] ]
+[ 1, { 0: h'<fragment 0>', 2: h'<group_id>', 4: 0, 6: 3, 7: 9 },
+  [ 7, { 2: "image/png", 3: h'...', 5: "photo.png" } ] ]
 ```
 
 Identification fields repeat on every code in the group, the same as
@@ -854,9 +854,9 @@ without inspecting each subrecord's typeId:
 
 ```
 [
-  [ [0, 2, {0: h'<fragment>', 2: h'<group_id>', 4: 0, 6: 3}],
-    [0, 2, {0: h'<fragment>', 2: h'<group_id>', 4: 1, 6: 3}] ],
-  [0, 10, {0: "https://..."}]
+  [ [1, {0: h'<fragment>', 2: h'<group_id>', 4: 0, 6: 3}],
+    [1, {0: h'<fragment>', 2: h'<group_id>', 4: 1, 6: 3}] ],
+  [5, {0: "https://..."}]
 ]
 // Bundle holding Split fragments and an Open/Hint URI
 ```
@@ -870,7 +870,7 @@ same as any unrecognized Record.
 
 A **Signature** is a sibling Record providing detached authenticity: it
 covers Records around it without wrapping or hiding them, so they stay
-plain and readable to a decoder that doesn't recognize Type 16 at all.
+plain and readable to a decoder that doesn't recognize Type 8 at all.
 Coverage is positional, not hash-based — a Signature Record covers
 every Record immediately preceding it **within the same array** (the
 root array, or a shared parent's own subrecord list), since the
@@ -907,7 +907,7 @@ the wire, not a reconstruction: a decoder recomputes it by re-encoding
 each covered Record from its parsed form and concatenating the results,
 the same canonical-encoding reliance `group_id` (§4.1) already requires.
 
-**A decoder that does recognize Type 16 MUST NOT let Algorithm broaden
+**A decoder that does recognize Type 8 MUST NOT let Algorithm broaden
 which algorithms it's willing to run** — the same allowlist discipline
 as Encrypt's key `3`/`5` (§4.1).
 
@@ -1010,12 +1010,12 @@ composes it through two Wrapper Records, in the recommended order from
 layer here — key material is already high-entropy, DEFLATE wouldn't help):
 
 ```
-authoring:  [950] Record  →  Encrypt [4]  →  Split [2]
-decoding:   Split [2]  →  Encrypt [4]  →  [950] Record
+authoring:  [950] Record  →  Encrypt [2]  →  Split [1]
+decoding:   Split [1]  →  Encrypt [2]  →  [950] Record
             (per code)       (after reassembly)    (the real key)
 ```
 
-Each printed code carries one Split-Wrapper Record (`[2]`) with
+Each printed code carries one Split-Wrapper Record (`[1]`) with
 `parity_scheme` set — losing one code out of the set is recoverable, which
 matters far more for a one-off secret-key backup than for disposable
 content. The app wrote **zero** reassembly, parity, or AES-GCM code of its
