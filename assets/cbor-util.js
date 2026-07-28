@@ -212,17 +212,18 @@ function parseShape(shapeStr) {
 function getFieldDef(typeId, keyStr, nsHex) {
   if (COMMON_FIELDS[keyStr]) return COMMON_FIELDS[keyStr];
 
+  // Only ever resolve field names against the record's own actual
+  // namespace (nsHex). A typeId is only meaningful relative to whatever
+  // namespace is actually present (or absent = global) — searching
+  // every *other* registered namespace for a numeric match here would
+  // misattribute an unrelated scoped type's field names onto this
+  // record purely by typeId coincidence, exactly the collision hazard
+  // namespace-scoping exists to prevent (QDEF-SPEC.md §3.5).
   let shape;
   if (nsHex && typeof QDEF_REGISTRY !== 'undefined') {
     const entry = QDEF_REGISTRY[nsHex];
     if (entry && entry.types[String(typeId)]) {
       shape = parseShape(entry.types[String(typeId)].shape);
-    }
-  }
-  if (!shape && typeof QDEF_REGISTRY !== 'undefined') {
-    const nsEntry = Object.values(QDEF_REGISTRY).find(e => e.types && e.types[String(typeId)]);
-    if (nsEntry && nsEntry.types[String(typeId)]) {
-      shape = parseShape(nsEntry.types[String(typeId)].shape);
     }
   }
   if (shape && shape[keyStr]) return shape[keyStr];

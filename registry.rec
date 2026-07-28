@@ -32,7 +32,7 @@ Semantics: TagDrop-specific Content fields — hint, location, collection, encry
 Reference: https://github.com/mofosyne/tagdrop/blob/master/SPEC.md#31-content-extension-type-1
 
 NamespaceId: h'89d414e0'
-ScopedTypeId: 3
+ScopedTypeId: 2
 RecordTypeName: io.github.mofosyne.tagdrop/content-signature
 VariableName: Content Signature
 DataItem: map { 3: bytes (signature), 5: bytes (signer_pubkey, opt) }
@@ -40,7 +40,7 @@ Semantics: Signature and signer public key for a signed Content payload. Travels
 Reference: https://github.com/mofosyne/tagdrop/blob/master/SPEC.md#31a-media-preview--media-payload-types-14--6
 
 NamespaceId: h'89d414e0'
-ScopedTypeId: 5
+ScopedTypeId: 3
 RecordTypeName: io.github.mofosyne.tagdrop/paper-preview
 VariableName: Paper Preview
 DataItem: map { 1: bytes (root_hash), 3: text (hint), 5: text (set), 7: text (slug), 9: text (domain), 11: uint (step), 13: bytes (collection_id), 15: text (collection_label), 17: text (collection_tag), 19: text (icon), 21: float64 (lat), 23: float64 (lng), 25: float64 (radius_m), 27: bool (prefer_declared_location), 29: text (location_label), 31: uint (signature_algorithm), 33: bytes (signer_id), 35: text (signer_label), 37: bytes (in_reply_to), 39: uint (created_at), 43: text (title), 45: text (description), 47: bytes (key_material), 49: bool (retain_key) }
@@ -48,7 +48,7 @@ Semantics: Small, always-plain Paper fields — identity, set/slug/domain, locat
 Reference: https://github.com/mofosyne/tagdrop/blob/master/SPEC.md#32-paper-preview-type-5
 
 NamespaceId: h'89d414e0'
-ScopedTypeId: 7
+ScopedTypeId: 4
 RecordTypeName: io.github.mofosyne.tagdrop/paper-body
 VariableName: Paper Body
 DataItem: map { 1: bytes (files), 3: bytes (related), 5: bytes (signature, opt), 7: bytes (signer_pubkey, opt) }

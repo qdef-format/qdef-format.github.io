@@ -66,8 +66,8 @@ Hex: `51 44 45 46 81 83 07 A3 02 6A 74 65 78 74 2F 70 6C 61 69 6E 03 48 12 9D A0
     7 // typeId=[7] (global) - Media Preview
     { 3 keys
       2: "text/plain" uint or tstr // Media Type (even/critical)
-      3: h'129da088d6d361bc' bytes // related (odd/optional)
-      5: "hello.txt" bytes // signature (odd/optional)
+      3: h'129da088d6d361bc' bstr // Content Hash (odd/optional)
+      5: "hello.txt" tstr // Filename (odd/optional)
     }
     [ 2 items // Record [3] — Media Payload
       3 // typeId=[3] (global) - Media Payload
