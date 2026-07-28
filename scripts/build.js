@@ -107,9 +107,12 @@ Object.entries(map).forEach(([file, cfg]) => {
   body = body.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
     '<details class="mermaid-wrap"><summary>Record flowchart</summary>\n<pre class="mermaid">$1</pre>\n</details>');
 
+  let ogUrl = cfg.out;
+  if (ogUrl === 'spec.html') ogUrl = ''; // root spec page
   let page = shell
     .replace('__TITLE__', cfg.title)
     .replace('__DESCRIPTION__', cfg.desc)
+    .replace('__OGURL__', ogUrl)
     .replace('__CONTENT__', body);
 
   if (cfg.banner) {
@@ -218,6 +221,7 @@ if (namespaces.length === 0) {
 let registryPage = shell
   .replace('__TITLE__', 'Registry')
   .replace('__DESCRIPTION__', 'QDEF Namespace Registry — registered namespaces and Record Types.')
+  .replace('__OGURL__', 'registry.html')
   .replace('__CONTENT__', registryBody);
 
 registryPage = registryPage.replace('<main class="container content">', '<main class="container">\n<h1>QDEF Namespace Registry</h1>');
@@ -256,6 +260,42 @@ console.log('Wrote ' + path.join(OUT, 'assets', 'registry-data.js'));
 // Pass the already-built nsById to avoid re-parsing registry.rec.
 globalThis.QDEF_REGISTRY = nsById;
 require('./gen-examples');
+
+// LLM-friendly content index
+const llms = `# QDEF — Quick Data Exchange Format
+
+QDEF is a binary container format for multi-action 2D barcodes (QR, Data Matrix, Aztec) and NFC tags. It carries typed, self-describing records in a compact CBOR-based wire format.
+
+## Key pages
+
+- Spec (normative): https://qdef-format.github.io/qdef-format/spec.html
+- Examples: https://qdef-format.github.io/qdef-format/examples.html
+- Registry: https://qdef-format.github.io/qdef-format/registry.html
+- Implementations: https://qdef-format.github.io/qdef-format/implementations.html
+- Related work: https://qdef-format.github.io/qdef-format/related-work.html
+- Validator tool: https://qdef-format.github.io/qdef-format/tools/validator.html
+- GitHub (prototype): https://github.com/mofosyne/qdef
+- GitHub (website): https://github.com/qdef-format/qdef-format.github.io
+
+## Quick summary
+
+Record shape: [namespace?, ns_annotation?, typeId*, type_annotation?, map?, subrecord*]
+- namespace: optional bstr, h'' = inherit parent, absent = global
+- typeId: consecutive uints, [N] with N in 2-22 for standard types
+- map key 0 = payload, key 1 = descriptor, keys > 0 with even/odd criticality
+- Negative keys: -1 (ID), -3 (UUID) only
+- Standard types: [2]=Split, [4]=Encrypt, [6]=Media Payload, [8]=Compress, [10]=Open/Hint URI, [12]=App Route, [14]=Media Preview, [16]=Signature
+`;
+fs.writeFileSync(path.join(OUT, 'llms.txt'), llms);
+console.log('Wrote ' + path.join(OUT, 'llms.txt'));
+
+// Robots
+const robots = `User-agent: *
+Allow: /
+Sitemap: https://qdef-format.github.io/qdef-format/sitemap.xml
+`;
+fs.writeFileSync(path.join(OUT, 'robots.txt'), robots);
+console.log('Wrote ' + path.join(OUT, 'robots.txt'));
 
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 console.log('Done');
