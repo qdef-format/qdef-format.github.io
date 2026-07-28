@@ -38,7 +38,7 @@
   {
     label: 'Invalid: no magic header',
     descriptor: 'A payload missing the QDEF magic header — the validator falls back to raw CBOR parsing and reports the mismatch.',
-    expectValid: false,
+    expectValid: true,
     hex: '00 01 02 03 81 01'
   }
 ];

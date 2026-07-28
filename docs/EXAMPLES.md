@@ -129,13 +129,11 @@ Hex: `51 44 45 46 80`
 ```
 
 
-## Invalid: no magic header (intentionally broken)
+## Invalid: no magic header
 
 A payload missing the QDEF magic header — the validator falls back to raw CBOR parsing and reports the mismatch.
 
 Hex: `00 01 02 03 81 01`
-
-*This payload is intentionally malformed to test validator error handling.*
 
 ```js
 00 01 02 03 81 01

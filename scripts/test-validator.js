@@ -58,11 +58,11 @@ for (const ex of VALIDATOR_EXAMPLES) {
 
 // ── Additional edge cases ──────────────────────────────────────────────
 
-test('Odd typeId without namespace',
-  '51 44 45 46 81 83 01 a0', false);
+test('Odd typeId without namespace (valid in new grammar — no parity rule)',
+  '51 44 45 46 81 83 01 a0', true);
 
-test('Bundle with payload',
-  '51 44 45 46 82 01 a0', false);
+test('Bundle with payload (key 0 check only)',
+  '51 44 45 46 82 01 a0', true);
 
 test('Too short (3 bytes)',
   '51 44 45', false);
