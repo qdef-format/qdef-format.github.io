@@ -1,36 +1,36 @@
 (typeof globalThis !== 'undefined' ? globalThis : window).VALIDATOR_EXAMPLES = [
   {
     label: 'Wi-Fi + URL Bundle',
-    descriptor: 'A Bundle of two Records — an illustrative Wi-Fi credential (type 100) and a standard Open/Hint URI (type 10). Note: type 100 is not an assigned standard type; it serves only as a hypothetical example.',
+    descriptor: 'A Bundle of two Records — an illustrative Wi-Fi credential (type [100]) and a standard Open/Hint URI (type [10]). Fields use the new key numbering (2=SSID, 4=password, 6=encryption).',
     expectValid: true,
-    hex: '51 44 45 46 82 82 18 64 a3 00 6e 4d 79 20 43 6f 66 66 65 65 20 53 68 6f 70 02 68 67 75 65 73 74 31 32 33 04 02 82 0a a1 00 78 1f 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 63 6f 66 66 65 65 2d 6d 65 6e 75'
+    hex: '51 44 45 46 82 82 18 64 A3 02 6E 4D 79 20 43 6F 66 66 65 65 20 53 68 6F 70 04 68 67 75 65 73 74 31 32 33 06 02 82 0A A1 00 78 1F 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 63 6F 66 66 65 65 2D 6D 65 6E 75'
   },
   {
     label: 'TagDrop Route (scoped)',
-    descriptor: 'A scoped Record under namespace 89d414e0 (TagDrop) with typeId=1, carrying an origin destination and an optional numeric hint.',
+    descriptor: 'A scoped Record under namespace h\'89d414e0\' (TagDrop) with typeId [1], payload at key 0.',
     expectValid: true,
-    hex: '51 44 45 46 81 83 44 89 d4 14 e0 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01'
+    hex: '51 44 45 46 81 83 44 89 D4 14 E0 01 A2 00 48 53 6F 6D 65 44 65 73 74 02 01'
   },
   {
     label: 'Media Preview + Payload',
-    descriptor: 'A Media Preview (type 14, even) containing a content hash and filename via Common Field Keys, with a nested Media Payload subrecord (type 6) carrying raw text content.',
+    descriptor: 'A Media Preview (type [14]) with keys 2=media type, 3=content hash, 5=filename. Nested Media Payload (type [6]) with content at key 0 and media type at key 1.',
     expectValid: true,
-    hex: '51 44 45 46 81 83 0e a3 00 6a 74 65 78 74 2f 70 6c 61 69 6e 2a 48 12 9d a0 88 d6 d3 61 bc 2e 69 68 65 6c 6c 6f 2e 74 78 74 83 06 a1 00 6a 74 65 78 74 2f 70 6c 61 69 6e 58 1a 48 65 6c 6c 6f 20 66 72 6f 6d 20 54 61 67 44 72 6f 70 20 43 6f 6e 74 65 6e 74'
+    hex: '51 44 45 46 81 83 0E A3 02 6A 74 65 78 74 2F 70 6C 61 69 6E 03 48 12 9D A0 88 D6 D3 61 BC 05 69 68 65 6C 6C 6F 2E 74 78 74 82 06 A2 00 58 1A 48 65 6C 6C 6F 20 66 72 6F 6D 20 54 61 67 44 72 6F 70 20 43 6F 6E 74 65 6E 74 01 6A 74 65 78 74 2F 70 6C 61 69 6E'
   },
   {
     label: 'TagDrop Content Extension',
-    descriptor: 'A scoped Record (typeId=1) under namespace 89d414e0 with three extension fields — a text hint, a text description, and a small binary payload.',
+    descriptor: 'A scoped Record (typeId [1]) under namespace h\'89d414e0\' with three extension fields.',
     expectValid: true,
-    hex: '51 44 45 46 81 83 44 89 d4 14 e0 01 a3 03 64 68 69 6e 74 0b 6b 64 65 73 63 72 69 70 74 69 6f 6e 0d 42 01 02'
+    hex: '51 44 45 46 81 83 44 89 D4 14 E0 01 A3 03 64 68 69 6E 74 0B 6B 64 65 73 63 72 69 70 74 69 6F 6E 0D 42 01 02'
   },
   {
-    label: 'Single URL (global typeId=10)',
-    descriptor: 'A minimal Open/Hint URI Record (type 10, even) with just a URL field — no optional hints or labels.',
+    label: 'Single URL (type [10])',
+    descriptor: 'A minimal Open/Hint URI Record (type [10]) with the URI as payload at key 0.',
     expectValid: true,
-    hex: '51 44 45 46 81 82 0a a1 00 78 18 68 74 74 70 73 3a 2f 2f 65 78 61 6d 70 6c 65 2e 63 6f 6d 2f 71 64 65 66'
+    hex: '51 44 45 46 82 0A A1 00 78 18 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 71 64 65 66'
   },
   {
-    label: 'Empty Bundle (typeId=0, no subrecords)',
+    label: 'Empty Bundle (no subrecords)',
     descriptor: 'The smallest valid QDEF payload — a Bundle containing zero Records.',
     expectValid: true,
     hex: '51 44 45 46 80'

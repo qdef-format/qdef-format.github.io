@@ -148,58 +148,66 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
   const items = (arr.value || []).filter(i => i != null);
   let idx = 0;
 
-  // Determine typeId and namespace
+  // Grammar: [namespace?, ns_annotation?, typeId*, type_annotation?, map?, subrecord*]
   let namespace = null;
-  let typeId = 0;
-  let typeIdExplicit = false;
-  let tidItem = null;
+  let nsAnnotation = null;
+  let typeId = null; // array of uints
+  let typeAnnotation = null;
+  let mapItem = null;
 
-  const nsMatch = idx < items.length && items[idx].type === 'bytes' && items[idx].value.length <= 8;
-  if (nsMatch) {
+  // namespace: bstr at position 0
+  if (idx < items.length && items[idx].type === 'bytes') {
     namespace = items[idx];
     idx++;
+
+    // ns_annotation: tstr after namespace
+    if (idx < items.length && items[idx].type === 'tstr') {
+      nsAnnotation = items[idx];
+      idx++;
+    }
   }
 
-  if (idx < items.length && (items[idx].type === 'uint' || items[idx].type === 'nint')) {
-    tidItem = items[idx];
-    typeId = tidItem.type === 'uint' ? tidItem.value : tidItem.value;
-    typeIdExplicit = true;
+  // typeId: consecutive uints
+  const typeIdUints = [];
+  while (idx < items.length && items[idx].type === 'uint') {
+    typeIdUints.push(items[idx].value);
     idx++;
   }
 
-  // Check map
-  const hasMap = idx < items.length && items[idx].type === 'map';
-  if (hasMap) idx++;
-
-  // Check payload
-  let hasPayload = false;
-  let payloadItem = null;
-  if (idx < items.length && items[idx].type !== 'array') {
-    hasPayload = true;
-    payloadItem = items[idx];
+  // type_annotation: tstr after last typeId uint (only if at least one uint)
+  if (typeIdUints.length > 0 && idx < items.length && items[idx].type === 'tstr') {
+    typeAnnotation = items[idx];
     idx++;
   }
 
-  // Remaining items are subrecords
+  // Error: bare tstr at position 0
+  if (!namespace && typeIdUints.length === 0 && idx < items.length && items[idx].type === 'tstr') {
+    issues.push({ level: 'error', text: `${label}: bare text string with no preceding namespace or typeId` });
+  }
+
+  // Map, if present
+  if (idx < items.length && items[idx].type === 'map') {
+    mapItem = items[idx];
+    idx++;
+  }
+
+  // Remaining items: subrecords (arrays only, rest skipped silently)
   const subrecords = items.slice(idx).filter(i => i.type === 'array');
 
-  // Per §3.5, a namespace cascades to subrecords: the effective namespace
-  // used for validation is this Record's own namespace if present, else
-  // the one inherited from its parent.
+  // Effective namespace for cascade
   const effectiveNamespace = namespace || inheritedNamespace;
 
   // Build description
+  const isBundle = !namespace && typeIdUints.length === 0;
   let recLabel = `${label} Record`;
   let recordAnn = '';
-  if (typeId === 0 && !typeIdExplicit) {
-    recLabel += ` (Bundle, implicit typeId=0)`;
-    recordAnn = `Bundle (implicit typeId=0)`;
-  } else if (typeId === 0 && typeIdExplicit) {
-    recLabel += ` (typeId=0, Bundle)`;
-    recordAnn = `Bundle (typeId=0)`;
+  if (isBundle) {
+    recLabel += ` (Bundle)`;
+    recordAnn = `Bundle`;
   } else {
-    recLabel += ` (typeId=${typeId})`;
-    recordAnn = `Record (typeId=${typeId})`;
+    const tidStr = typeIdUints.join('.');
+    recLabel += ` (typeId=[${tidStr}])`;
+    recordAnn = `Record [${tidStr}]`;
   }
 
   let nsHexFlat = null;
@@ -221,6 +229,11 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
     }
     annotateItem(namespace, nsAnn);
 
+    if (nsAnnotation) {
+      const annText = nsAnnotation.value;
+      annotateItem(nsAnnotation, `ns annotation: "${annText}"`);
+    }
+
     if (recordAnn) recordAnn = `${nsName || nsHexFlat} ${recordAnn}`;
     else recordAnn = `${nsName || nsHexFlat}`;
   } else {
@@ -230,54 +243,71 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
     }
   }
 
-  if (typeIdExplicit) {
-    const parity = typeId % 2 === 0 ? 'even (global)' : 'odd (scoped)';
-    let typeAnn = `typeId=${typeId}`;
+  if (typeIdUints.length > 0) {
+    const tidStr = typeIdUints.join(',');
     let typeName = null;
     if (regNsHex && typeof QDEF_REGISTRY !== 'undefined') {
       const entry = QDEF_REGISTRY[regNsHex];
-      if (entry && entry.types[String(typeId)]) {
-        const rt = entry.types[String(typeId)];
-        typeName = rt.variable || rt.name;
+      if (entry && entry.types) {
+        // Check for single-uint typeId in registry
+        if (typeIdUints.length === 1 && entry.types[String(typeIdUints[0])]) {
+          const rt = entry.types[String(typeIdUints[0])];
+          typeName = rt.variable || rt.name;
+        }
       }
     }
-    if (!typeName && STANDARD_TYPE_NAMES[String(typeId)]) {
-      typeName = STANDARD_TYPE_NAMES[String(typeId)];
+    if (!typeName && typeIdUints.length === 1 && STANDARD_TYPE_NAMES[String(typeIdUints[0])]) {
+      typeName = STANDARD_TYPE_NAMES[String(typeIdUints[0])];
     }
-    typeAnn += ` (${parity})`;
-    if (typeName) typeAnn += ` - ${typeName}`;
-    issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Type ID: ${typeId} (${parity})${typeName ? ' → ' + typeName : ''}` });
-    annotateItem(tidItem, typeAnn);
+    const scope = namespace ? ' (scoped)' : ' (global)';
+    const firstTid = typeIdUints[0];
+    issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Type ID: [${tidStr}]${scope}${typeName ? ' → ' + typeName : ''}` });
+    annotateItem(items[namespace ? (nsAnnotation ? 2 : 1) : 0], `typeId=[${tidStr}]${scope}${typeName ? ' - ' + typeName : ''}`);
+
+    if (typeAnnotation) {
+      annotateItem(typeAnnotation, `type annotation: "${typeAnnotation.value}"`);
+    }
+
     if (typeName && recordAnn) recordAnn += ` — ${typeName}`;
   }
   if (recordAnn) annotateItem(arr, recordAnn);
 
-  if (hasMap) {
+  if (mapItem) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Has field map` });
-    const mapItem = items[namespace ? (typeIdExplicit ? 2 : 1) : (typeIdExplicit ? 1 : 0)];
-    if (mapItem) {
-      for (const pair of mapItem.value) {
-        if (pair.key && (pair.key.type === 'uint' || pair.key.type === 'nint')) {
-          const k = String(pair.key.value);
-          const fd = getFieldDef(typeId, k, regNsHex);
-          const keyParity = typeof pair.key.value === 'number'
-            ? (pair.key.value % 2 === 0 ? 'even/critical' : 'odd/optional') : '';
-          if (fd) {
-            const isCommon = COMMON_FIELDS[k] ? ' - common field key' : '';
-            pair.key._ann = keyParity ? `${fd.name} (${keyParity})${isCommon}` : `${fd.name}${isCommon}`;
-            if (pair.value && pair.value.type !== 'map' && pair.value.type !== 'array') {
-              pair.value._ann = fd.type;
-            }
+    for (const pair of mapItem.value) {
+      if (pair.key && (pair.key.type === 'uint' || pair.key.type === 'nint')) {
+        const k = String(pair.key.value);
+        const keyVal = pair.key.value;
+
+        // Key 0 = payload (reserved, not even/odd)
+        if (keyVal === 0) {
+          pair.key._ann = `payload (key 0)`;
+          continue;
+        }
+
+        // Negative keys = common headers (spec-reserved)
+        if (keyVal < 0) {
+          const common = COMMON_FIELDS ? COMMON_FIELDS[k] : null;
+          pair.key._ann = common ? `${common.name} (common)` : `common key ${k}`;
+          continue;
+        }
+
+        // Positive keys > 0: per-Type with even/odd
+        const keyParity = keyVal % 2 === 0 ? 'even/critical' : 'odd/optional';
+        const tidKey = typeIdUints.length > 0 ? String(typeIdUints[0]) : '0';
+        const fd = getFieldDef ? getFieldDef(Number(tidKey), k, regNsHex) : null;
+        if (fd) {
+          pair.key._ann = `${fd.name} (${keyParity})`;
+          if (pair.value && pair.value.type !== 'map' && pair.value.type !== 'array') {
+            pair.value._ann = fd.type;
           }
+        } else {
+          pair.key._ann = keyParity;
         }
       }
     }
   }
-  if (hasPayload) {
-    if (payloadItem) {
-      issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Has payload: ${fmtInlineShort(payloadItem)}` });
-    }
-  }
+
   if (subrecords.length > 0) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}${subrecords.length} subrecord(s)` });
     for (let si = 0; si < subrecords.length; si++) {
@@ -286,14 +316,17 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
   }
 
   // Validation rules
-  if (typeId === 0 && hasPayload) {
-    issues.push({ level: 'error', text: `${label}: Bundle (typeId=0) MUST NOT carry a payload` });
+  if (isBundle && mapItem) {
+    const hasKeyZero = mapItem.value.some(p => p.key && p.key.value === 0);
+    if (hasKeyZero) {
+      issues.push({ level: 'error', text: `${label}: Bundle MUST NOT carry a payload (key 0)` });
+    }
   }
-  if (typeIdExplicit && typeof typeId === 'number' && typeId % 2 !== 0 && !effectiveNamespace) {
-    issues.push({ level: 'error', text: `${label}: odd typeId requires a namespace` });
+  if (!namespace && typeIdUints.length === 1 && typeIdUints[0] >= 2 && typeIdUints[0] <= 22) {
+    issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}→ Standard QDEF type [${typeIdUints[0]}] (global)` });
   }
 
-  return { namespace, typeId, typeIdExplicit, hasMap, hasPayload, subrecords };
+  return { namespace, typeId: typeIdUints, hasMap: !!mapItem, subrecords };
 }
 
 function fmtInlineShort(item) {

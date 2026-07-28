@@ -135,12 +135,6 @@ class CBORReader {
 const COMMON_FIELDS = {
   '-1':  { type: 'bstr or tstr', name: 'ID' },
   '-3':  { type: 'bstr', name: 'UUID' },
-  '-5':  { type: 'tag', name: 'Date' },
-  '-7':  { type: 'tstr', name: 'Label' },
-  '-9':  { type: 'tstr', name: 'Language' },
-  '-11': { type: 'bstr', name: 'Content Hash' },
-  '-13': { type: 'tstr', name: 'Source' },
-  '-15': { type: 'tstr', name: 'Filename' },
 };
 
 const STANDARD_TYPE_NAMES = {
@@ -156,44 +150,47 @@ const STANDARD_TYPE_NAMES = {
 };
 
 const STANDARD_SHAPES = {
-  '0': {
-    '3': { type: 'tstr', name: 'Hint Name', optional: true },
-    '5': { type: 'bstr', name: 'Backup Namespace', optional: true },
-  },
   '2': {
-    '0': { type: 'bstr', name: 'Group ID' },
-    '2': { type: 'uint', name: 'Fragment Index' },
-    '4': { type: 'uint', name: 'Fragment Count' },
+    '0': { type: 'bstr', name: 'Fragment Bytes (payload)' },
+    '2': { type: 'bstr', name: 'Group ID' },
+    '4': { type: 'uint', name: 'Fragment Index' },
+    '6': { type: 'uint', name: 'Fragment Count' },
     '7': { type: 'uint', name: 'Total Bytes', optional: true },
     '9': { type: 'uint', name: 'Parity Scheme', optional: true },
   },
   '4': {
-    '0': { type: 'bstr', name: 'Nonce' },
+    '0': { type: 'bstr', name: 'Ciphertext + Tag (payload)' },
+    '2': { type: 'bstr', name: 'Nonce' },
     '3': { type: 'uint or tstr', name: 'Algorithm', optional: true },
     '5': { type: 'uint or tstr', name: 'Key Algorithm', optional: true },
   },
   '6': {
-    '0': { type: 'uint or tstr', name: 'Media Type' },
+    '0': { type: 'bstr', name: 'Content (payload)' },
+    '1': { type: 'uint or tstr', name: 'Media Type', optional: true },
+  },
+  '8': {
+    '0': { type: 'bstr', name: 'Deflated Bytes (payload)' },
   },
   '10': {
-    '0': { type: 'tstr', name: 'URI' },
+    '0': { type: 'tstr', name: 'URI (payload)' },
     '1': { type: 'tstr', name: 'Label', optional: true },
     '3': { type: 'tstr', name: 'Language', optional: true },
     '5': { type: 'uint', name: 'Action', optional: true },
   },
   '12': {
-    '0': { type: 'tstr or bstr', name: 'Origin' },
+    '0': { type: 'tstr or bstr', name: 'Origin (payload)' },
     '1': { type: 'tstr', name: 'Hint Name', optional: true },
   },
   '14': {
-    '0': { type: 'uint or tstr', name: 'Media Type' },
-    '1': { type: 'bstr', name: 'Content Hash', optional: true },
-    '3': { type: 'tstr', name: 'Filename', optional: true },
-    '5': { type: 'tstr', name: 'Label', optional: true },
+    '2': { type: 'uint or tstr', name: 'Media Type' },
+    '3': { type: 'bstr', name: 'Content Hash', optional: true },
+    '5': { type: 'tstr', name: 'Filename', optional: true },
+    '7': { type: 'tstr', name: 'Label', optional: true },
   },
   '16': {
-    '0': { type: 'nint', name: 'Algorithm' },
-    '2': { type: 'bstr', name: 'Public Key' },
+    '0': { type: 'bstr', name: 'Signature (payload)' },
+    '2': { type: 'nint', name: 'Algorithm' },
+    '4': { type: 'bstr', name: 'Public Key' },
   },
 };
 
@@ -249,18 +246,29 @@ function fieldName(typeId, keyNum) {
 
 function analyzeRecord(arr) {
   const items = (arr.value || []).filter(i => i != null);
-  let idx = 0, namespace = null;
+  let idx = 0, namespace = null, nsAnnotation = null;
 
   if (idx < items.length && items[idx].type === 'bytes' && items[idx].value.length <= 8) {
     namespace = items[idx];
     idx++;
+    if (idx < items.length && items[idx].type === 'tstr') {
+      nsAnnotation = items[idx];
+      idx++;
+    }
   }
 
-  let typeId = 0, typeIdExplicit = false, tidItem = null;
-  if (idx < items.length && (items[idx].type === 'uint' || items[idx].type === 'nint')) {
-    tidItem = items[idx];
-    typeId = tidItem.value;
-    typeIdExplicit = true;
+  const typeIdUints = [];
+  let tidItem = null;
+  while (idx < items.length && items[idx].type === 'uint') {
+    if (typeIdUints.length === 0) tidItem = items[idx];
+    typeIdUints.push(items[idx].value);
+    idx++;
+  }
+  const typeIdExplicit = typeIdUints.length > 0;
+
+  let typeAnnotation = null;
+  if (typeIdExplicit && idx < items.length && items[idx].type === 'tstr') {
+    typeAnnotation = items[idx];
     idx++;
   }
 
@@ -270,16 +278,9 @@ function analyzeRecord(arr) {
     idx++;
   }
 
-  let hasPayload = false, payloadItem = null;
-  if (idx < items.length && items[idx].type !== 'array') {
-    hasPayload = true;
-    payloadItem = items[idx];
-    idx++;
-  }
-
   const subrecords = items.slice(idx).filter(i => i.type === 'array');
 
-  return { namespace, typeId, typeIdExplicit, tidItem, mapItem, hasPayload, payloadItem, subrecords };
+  return { namespace, nsAnnotation, typeId: typeIdUints, typeIdExplicit, tidItem, typeAnnotation, mapItem, subrecords };
 }
 
 // ── In-place Record annotation (shared between validator and docs) ─────
@@ -290,13 +291,15 @@ function annotateItem(item, text) {
 
 function annotateRecordStructure(arr, inheritedNamespace) {
   const ra = analyzeRecord(arr);
-  const { namespace, typeId, typeIdExplicit, tidItem, mapItem, payloadItem, subrecords } = ra;
+  const { namespace, nsAnnotation, typeId, typeIdExplicit, tidItem, typeAnnotation, mapItem, subrecords } = ra;
 
   const effectiveNamespace = namespace || inheritedNamespace;
   let regNsHex = null;
   if (effectiveNamespace) {
     regNsHex = bytesToHex(effectiveNamespace.value).replace(/ /g, '');
   }
+
+  const isBundle = !namespace && typeId.length === 0;
 
   // Annotate namespace
   if (namespace) {
@@ -307,35 +310,43 @@ function annotateRecordStructure(arr, inheritedNamespace) {
     }
     annotateItem(namespace, nsAnn);
   }
+  if (nsAnnotation) {
+    annotateItem(nsAnnotation, `annotation: "${nsAnnotation.value}"`);
+  }
 
-  // Resolve type name (shared between typeId annotation and array annotation)
+  // Resolve type name
   let typeName = null;
   if (regNsHex && typeof QDEF_REGISTRY !== 'undefined') {
     const entry = QDEF_REGISTRY[regNsHex];
-    if (entry && entry.types[String(typeId)]) {
-      typeName = entry.types[String(typeId)].variable || entry.types[String(typeId)].name;
+    if (entry && entry.types) {
+      if (typeId.length === 1 && entry.types[String(typeId[0])]) {
+        typeName = entry.types[String(typeId[0])].variable || entry.types[String(typeId[0])].name;
+      }
     }
   }
-  if (!typeName && STANDARD_TYPE_NAMES[String(typeId)]) {
-    typeName = STANDARD_TYPE_NAMES[String(typeId)];
+  if (!typeName && typeId.length === 1 && STANDARD_TYPE_NAMES[String(typeId[0])]) {
+    typeName = STANDARD_TYPE_NAMES[String(typeId[0])];
   }
 
   // Annotate typeId
-  if (typeIdExplicit) {
-    const parity = typeId % 2 === 0 ? 'even (global)' : 'odd (scoped)';
-    let typeAnn = `typeId=${typeId} (${parity})`;
+  if (typeIdExplicit && tidItem) {
+    const tidStr = typeId.join(',');
+    const scope = namespace ? 'scoped' : 'global';
+    let typeAnn = `typeId=[${tidStr}] (${scope})`;
     if (typeName) typeAnn += ` - ${typeName}`;
     annotateItem(tidItem, typeAnn);
+  }
+  if (typeAnnotation) {
+    annotateItem(typeAnnotation, `annotation: "${typeAnnotation.value}"`);
   }
 
   // Annotate array itself with record description
   let recordAnn = '';
-  if (typeId === 0 && !typeIdExplicit) {
-    recordAnn = 'Bundle (implicit typeId=0)';
-  } else if (typeId === 0 && typeIdExplicit) {
-    recordAnn = 'Bundle (typeId=0)';
+  if (isBundle) {
+    recordAnn = 'Bundle';
   } else {
-    let base = `Record (typeId=${typeId})`;
+    const tidStr = typeId.join('.');
+    let base = `Record [${tidStr}]`;
     if (regNsHex && typeof QDEF_REGISTRY !== 'undefined') {
       const entry = QDEF_REGISTRY[regNsHex];
       if (entry) {
@@ -352,16 +363,33 @@ function annotateRecordStructure(arr, inheritedNamespace) {
   if (mapItem) {
     for (const pair of mapItem.value) {
       if (pair.key && (pair.key.type === 'uint' || pair.key.type === 'nint')) {
-        const k = String(pair.key.value);
-        const fd = getFieldDef(typeId, k, regNsHex);
-        const keyParity = typeof pair.key.value === 'number'
-          ? (pair.key.value % 2 === 0 ? 'even/critical' : 'odd/optional') : '';
+        const keyVal = pair.key.value;
+        const k = String(keyVal);
+
+        // Key 0 = payload (reserved)
+        if (keyVal === 0) {
+          annotateItem(pair.key, 'payload');
+          continue;
+        }
+
+        // Negative = common header
+        if (keyVal < 0) {
+          const common = COMMON_FIELDS[k];
+          annotateItem(pair.key, common ? `${common.name} (common)` : `common key ${k}`);
+          continue;
+        }
+
+        // Positive > 0: per-Type with even/odd
+        const keyParity = keyVal % 2 === 0 ? 'even/critical' : 'odd/optional';
+        const tidForLookup = typeId.length > 0 ? typeId[0] : 0;
+        const fd = getFieldDef(tidForLookup, k, regNsHex);
         if (fd) {
-          const isCommon = COMMON_FIELDS[k] ? ' - common field key' : '';
-          annotateItem(pair.key, keyParity ? `${fd.name} (${keyParity})${isCommon}` : `${fd.name}${isCommon}`);
+          annotateItem(pair.key, `${fd.name} (${keyParity})`);
           if (pair.value && pair.value.type !== 'map' && pair.value.type !== 'array') {
             annotateItem(pair.value, fd.type);
           }
+        } else {
+          annotateItem(pair.key, keyParity);
         }
       }
     }
@@ -372,7 +400,7 @@ function annotateRecordStructure(arr, inheritedNamespace) {
     annotateRecordStructure(sub, effectiveNamespace);
   }
 
-  return { namespace, typeId, typeIdExplicit, mapItem, payloadItem, subrecords, effectiveNamespace };
+  return { namespace, typeId, typeIdExplicit, mapItem, subrecords, effectiveNamespace };
 }
 
 // ── Text tree renderer (shared between validator and docs) ────────────
