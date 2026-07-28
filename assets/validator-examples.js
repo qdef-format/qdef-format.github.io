@@ -37,7 +37,7 @@
   },
   {
     label: 'UUID-only Bundle (tag identity)',
-    descriptor: 'A minimal payload with just a UUID — identifies the QR tag itself, no content subrecords. Useful for inventory tracking. (Whether the UUID identifies the tag or the container is an open design question — see DESIGN.md.)',
+    descriptor: 'A minimal payload with just a UUID on a Bundle — no content subrecords. Useful for inventory tracking or tag identity. (The spec allows it; which convention an app follows is an open design question.)',
     expectValid: true,
     hex: '51 44 45 46 81 A1 22 50 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF'
   },
