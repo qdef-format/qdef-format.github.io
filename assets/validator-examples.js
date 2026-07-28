@@ -1,9 +1,9 @@
 (typeof globalThis !== 'undefined' ? globalThis : window).VALIDATOR_EXAMPLES = [
   {
     label: 'Wi-Fi + URL Bundle',
-    descriptor: 'A Bundle of two Records — an illustrative Wi-Fi credential (type [100]) and a standard Open/Hint URI (type [10]). Fields use the new key numbering (2=SSID, 4=password, 6=encryption).',
+    descriptor: 'A Bundle of two Records — an illustrative Wi-Fi credential (type [100]) and a standard Open/Hint URI (type [5]). Fields use key 2=SSID, 4=password, 6=encryption.',
     expectValid: true,
-    hex: '51 44 45 46 82 82 18 64 A3 02 6E 4D 79 20 43 6F 66 66 65 65 20 53 68 6F 70 04 68 67 75 65 73 74 31 32 33 06 02 82 0A A1 00 78 1F 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 63 6F 66 66 65 65 2D 6D 65 6E 75'
+    hex: '51 44 45 46 82 82 18 64 A3 02 6E 4D 79 20 43 6F 66 66 65 65 20 53 68 6F 70 04 68 67 75 65 73 74 31 32 33 06 02 82 05 A1 00 78 1F 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 63 6F 66 66 65 65 2D 6D 65 6E 75'
   },
   {
     label: 'TagDrop Route (scoped)',
@@ -13,9 +13,9 @@
   },
   {
     label: 'Media Preview + Payload',
-    descriptor: 'A Media Preview (type [14]) with keys 2=media type, 3=content hash, 5=filename. Nested Media Payload (type [6]) with content at key 0 and media type at key 1.',
+    descriptor: 'A Media Preview (type [7]) with keys 2=media type, 3=content hash, 5=filename. Nested Media Payload (type [3]) with content at key 0 and media type at key 1.',
     expectValid: true,
-    hex: '51 44 45 46 81 83 0E A3 02 6A 74 65 78 74 2F 70 6C 61 69 6E 03 48 12 9D A0 88 D6 D3 61 BC 05 69 68 65 6C 6C 6F 2E 74 78 74 82 06 A2 00 58 1A 48 65 6C 6C 6F 20 66 72 6F 6D 20 54 61 67 44 72 6F 70 20 43 6F 6E 74 65 6E 74 01 6A 74 65 78 74 2F 70 6C 61 69 6E'
+    hex: '51 44 45 46 81 83 07 A3 02 6A 74 65 78 74 2F 70 6C 61 69 6E 03 48 12 9D A0 88 D6 D3 61 BC 05 69 68 65 6C 6C 6F 2E 74 78 74 82 03 A2 00 58 1A 48 65 6C 6C 6F 20 66 72 6F 6D 20 54 61 67 44 72 6F 70 20 43 6F 6E 74 65 6E 74 01 6A 74 65 78 74 2F 70 6C 61 69 6E'
   },
   {
     label: 'TagDrop Content Extension',
@@ -24,10 +24,10 @@
     hex: '51 44 45 46 81 83 44 89 D4 14 E0 01 A3 03 64 68 69 6E 74 0B 6B 64 65 73 63 72 69 70 74 69 6F 6E 0D 42 01 02'
   },
   {
-    label: 'Single URL (type [10])',
-    descriptor: 'A minimal Open/Hint URI Record (type [10]) with the URI as payload at key 0.',
+    label: 'Single URL (type [5] — Open/Hint URI)',
+    descriptor: 'A minimal Open/Hint URI Record (type [5]) with the URI as payload at key 0.',
     expectValid: true,
-    hex: '51 44 45 46 82 0A A1 00 78 18 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 71 64 65 66'
+    hex: '51 44 45 46 82 05 A1 00 78 18 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 71 64 65 66'
   },
   {
     label: 'Empty Bundle (no subrecords)',

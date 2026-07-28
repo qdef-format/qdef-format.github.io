@@ -88,9 +88,9 @@ sequence, then an optional CBOR **map** (key `0` reserved for payload),
 then **subrecords**:
 
 ```
-QDEF [10, {0: "https://..."}]                -- typeId [10] = Open/Hint URI (standard)
+QDEF [5, {0: "https://..."}]                 -- typeId [5] = Open/Hint URI (standard)
 QDEF [h'deadbeef', 1, {0: "data"}]         -- namespace + typeId [1], scoped
-QDEF [[10, {0: "..."}], [100, {2: "SSID"}]]  -- Bundle, two subrecords
+QDEF [[5, {0: "..."}], [100, {2: "SSID"}]]   -- Bundle, two subrecords
 ```
 
 Both the root array and every subrecord's own array header (its CBOR
@@ -207,14 +207,14 @@ encouraged to do the same:
 | Standard type | Key 0 | Key 1 |
 |---|---|---|
 | Bundle | — | — |
-| Split [2] | fragment bytes | — |
-| Compress [8] | deflated bytes | — |
-| Encrypt [4] | ciphertext + tag | — |
-| Media Payload [6] | content bytes | media type (MIME/CoAP) |
-| Open/Hint URI [10] | URI | label |
-| App Route [12] | domain/hash | label |
-| Media Preview [14] | — (content in subrecord) | — |
-| Signature [16] | signature bytes | — |
+| Split [1] | fragment bytes | — |
+| Encrypt [2] | ciphertext + tag | — |
+| Media Payload [3] | content bytes | media type (MIME/CoAP) |
+| Compress [4] | deflated bytes | — |
+| Open/Hint URI [5] | URI | label |
+| App Route [6] | domain/hash | label |
+| Media Preview [7] | — (content in subrecord) | — |
+| Signature [8] | signature bytes | — |
 
 Application types that don't follow this convention shift their fields
 to start at key 2, which also gets the first even/odd criticality
@@ -477,18 +477,18 @@ namespace for scoping.
 **Currently assigned type IDs:**
 
 | TypeId | Record Type | Section | Notes |
-|---|---|---|---|
+|---|---|---|---|---|
 | (absent) | Bundle | §4.6 | Structural grouping |
-| [2] | Split | §4.1 | Fragment reassembly / parity |
-| [4] | Encrypt | §4.1 | AEAD (e.g. AES-256-GCM) |
-| [6] | Media Payload | §4.3 | Typed binary content |
-| [8] | Compress | §4.1 | DEFLATE |
-| [10] | Open/Hint URI | §4.2 | URI to open / fallback |
-| [12] | App Route | §4.4 | Application dispatch |
-| [14] | Media Preview | §4.5 | Content identification |
-| [16] | Signature | §4.7 | Detached authenticity |
+| [1] | Split | §4.1 | Fragment reassembly / parity |
+| [2] | Encrypt | §4.1 | AEAD (e.g. AES-256-GCM) |
+| [3] | Media Payload | §4.3 | Typed binary content |
+| [4] | Compress | §4.1 | DEFLATE |
+| [5] | Open/Hint URI | §4.2 | URI to open / fallback |
+| [6] | App Route | §4.4 | Application dispatch |
+| [7] | Media Preview | §4.5 | Content identification |
+| [8] | Signature | §4.7 | Detached authenticity |
 
-All nine are global types (no namespace), spec-reserved in the 2–22
+All nine are global types (no namespace), spec-reserved in the 1–22
 range.
 
 **Type ID allocation ranges.** Scope is determined by namespace
@@ -496,8 +496,8 @@ presence, not the typeId value:
 
 | Range | Governance | Scope |
 |---|---|---|
-| 2–22 | Standards Action — QDEF standard types (§4) | global (by spec) |
-| 24–98 | Specification Required — reserved | global |
+| 1–22 | Standards Action — QDEF standard types (§4) | global (by spec) |
+| 23–98 | Specification Required — reserved | global |
 | 100–32767 | Specification Required — reviewed app types | global (no ns) or scoped (with ns) |
 | 32768+ | First Come First Served — self-allocated | global (no ns) or scoped (with ns) |
 
@@ -505,7 +505,7 @@ presence, not the typeId value:
 
 ```
 1. Is this part of QDEF's own standard-record-type infrastructure?
-     YES -> use assigned number 2-22, no namespace
+     YES -> use assigned number 1-22, no namespace
 
 2. Does your app need collision isolation from other apps?
      YES -> declare a byte-string namespace (§3.5) and use any
@@ -530,30 +530,11 @@ Record Type's own author.
 Wrapper Type IDs use the standard low range, global (no namespace):
 
 ```
-Type 2:                          // Split
-  // field map:
-  0: h'<fragment bytes>',       // PAYLOAD: this code's slice (key 0 = payload)
-  2: h'<group_id>',              // CRITICAL: content-addressed hash of the
-                                  //   full reassembled bytes — never an issued
-                                  //   serial, so no coordination is needed
-                                  //   between independent encoders (relies on
-                                  //   §3.4's canonical-encoding rule). A
-                                  //   decoder MUST recompute this hash after
-                                  //   reassembly and reject a mismatch.
-  4: 1,                          // CRITICAL: this fragment's index
-  6: 4,                          // CRITICAL: total fragment count in the group
-  7: 5821,                       // OPTIONAL (odd), but MUST be present whenever
-                                  //   key 9 (parity_scheme) is set. When present:
-                                  //   total_bytes of the reassembled whole.
-  9: 1                           // OPTIONAL: parity_scheme — 0/absent = none,
-                                  //   nonzero selects a registered forward-
-                                  //   error-correction scheme
-
-Type 8:                          // Compress (DEFLATE)
+Type 4:                          // Compress (DEFLATE)
   // field map:
   0: h'<deflate bytes>'          // PAYLOAD: deflated bytes (key 0 = payload)
 
-Type 4:                          // Encrypt (e.g. AES-GCM)
+Type 2:                          // Encrypt (e.g. AES-GCM)
   // field map:
   0: h'<ciphertext+tag>',        // PAYLOAD: ciphertext concatenated with the
                                   //   16-byte GCM authentication tag (key 0)
@@ -644,7 +625,7 @@ whose *entire* content is a single URI, with nothing else to fall back
 from.
 
 ```
-Type 10:                           // Open/Hint URI (standard record type)
+Type 5:                            // Open/Hint URI (standard record type)
   // field map:
   0: "https://example.com/open-this",  // PAYLOAD: URI a generic tool or
                                         //   browser can follow (key 0)
@@ -681,7 +662,7 @@ snippet) without registering a bespoke Type ID for every possible file
 format the way Examples does for application-specific content:
 
 ```
-Type 6:                           // Media Payload (standard record type)
+Type 3:                            // Media Payload (standard record type)
   // field map:
   0: h'<content bytes>',          // PAYLOAD: the content itself (key 0)
   1: 22                           // OPTIONAL: Media Type — uint or text,
@@ -713,13 +694,13 @@ Intent-filter dispatch, without the scanner needing any
 implementer-specific knowledge baked in:
 
 ```
-Type 12:                           // App Route (standard record type) — domain form
+Type 6:                            // App Route (standard record type) — domain form
   // field map:
   0: "example.com",                 // PAYLOAD: a domain the routing target
                                      //   has verified control over (key 0)
   1: "Open in Example App"          // OPTIONAL: human-readable label
 
-Type 12:                           // App Route (standard record type) — hash-derived form
+Type 6:                            // App Route (standard record type) — hash-derived form
   // field map:
   0: h'<truncated SHA-256>',        // PAYLOAD: hash-derived byte string
                                      //   value (key 0)
@@ -786,7 +767,7 @@ independently of the content bytes themselves, which travel as this
 Record's own subrecord (§3):
 
 ```
-Type 14:                           // Media Preview (standard record type)
+Type 7:                            // Media Preview (standard record type)
   // field map:
   // (no key 0 — no payload; content travels as subrecord)
   2: "image/png",                   // CRITICAL: IANA media type (RFC 6838),
@@ -898,7 +879,7 @@ whichever is nearer. It never covers a Record at a different nesting
 level, its own parent's map or payload, or anything that follows it:
 
 ```
-Type 16:                          // Signature (standard record type)
+Type 8:                            // Signature (standard record type)
   // field map:
   0: h'<signature bytes>',         // PAYLOAD: signature over the covered
                                      //   Records' own canonical bytes,

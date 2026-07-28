@@ -10,9 +10,9 @@ Record Type definitions. Each hex string is validated by the CI suite
 
 ## Wi-Fi + URL Bundle
 
-A Bundle of two Records — an illustrative Wi-Fi credential (type [100]) and a standard Open/Hint URI (type [10]). Fields use the new key numbering (2=SSID, 4=password, 6=encryption).
+A Bundle of two Records — an illustrative Wi-Fi credential (type [100]) and a standard Open/Hint URI (type [5]). Fields use key 2=SSID, 4=password, 6=encryption.
 
-Hex: `51 44 45 46 82 82 18 64 A3 02 6E 4D 79 20 43 6F 66 66 65 65 20 53 68 6F 70 04 68 67 75 65 73 74 31 32 33 06 02 82 0A A1 00 78 1F 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 63 6F 66 66 65 65 2D 6D 65 6E 75`
+Hex: `51 44 45 46 82 82 18 64 A3 02 6E 4D 79 20 43 6F 66 66 65 65 20 53 68 6F 70 04 68 67 75 65 73 74 31 32 33 06 02 82 05 A1 00 78 1F 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 63 6F 66 66 65 65 2D 6D 65 6E 75`
 
 ```js
 [ 2 items // Bundle
@@ -24,8 +24,8 @@ Hex: `51 44 45 46 82 82 18 64 A3 02 6E 4D 79 20 43 6F 66 66 65 65 20 53 68 6F 70
       6: 2 // even/critical
     }
   ]
-  [ 2 items // Record [10] — Open/Hint URI
-    10 // typeId=[10] (global) - Open/Hint URI
+  [ 2 items // Record [5] — Open/Hint URI
+    5 // typeId=[5] (global) - Open/Hint URI
     { 1 keys
       0: "https://example.com/coffee-menu" // payload
     }
@@ -47,7 +47,7 @@ Hex: `51 44 45 46 81 83 44 89 D4 14 E0 01 A2 00 48 53 6F 6D 65 44 65 73 74 02 01
     1 // typeId=[1] (scoped) - Content Extension
     { 2 keys
       0: h'536f6d6544657374' // payload
-      2: 1 // even/critical
+      2: 1 bstr // Group ID (even/critical)
     }
   ]
 ]
@@ -56,21 +56,21 @@ Hex: `51 44 45 46 81 83 44 89 D4 14 E0 01 A2 00 48 53 6F 6D 65 44 65 73 74 02 01
 
 ## Media Preview + Payload
 
-A Media Preview (type [14]) with keys 2=media type, 3=content hash, 5=filename. Nested Media Payload (type [6]) with content at key 0 and media type at key 1.
+A Media Preview (type [7]) with keys 2=media type, 3=content hash, 5=filename. Nested Media Payload (type [3]) with content at key 0 and media type at key 1.
 
-Hex: `51 44 45 46 81 83 0E A3 02 6A 74 65 78 74 2F 70 6C 61 69 6E 03 48 12 9D A0 88 D6 D3 61 BC 05 69 68 65 6C 6C 6F 2E 74 78 74 82 06 A2 00 58 1A 48 65 6C 6C 6F 20 66 72 6F 6D 20 54 61 67 44 72 6F 70 20 43 6F 6E 74 65 6E 74 01 6A 74 65 78 74 2F 70 6C 61 69 6E`
+Hex: `51 44 45 46 81 83 07 A3 02 6A 74 65 78 74 2F 70 6C 61 69 6E 03 48 12 9D A0 88 D6 D3 61 BC 05 69 68 65 6C 6C 6F 2E 74 78 74 82 03 A2 00 58 1A 48 65 6C 6C 6F 20 66 72 6F 6D 20 54 61 67 44 72 6F 70 20 43 6F 6E 74 65 6E 74 01 6A 74 65 78 74 2F 70 6C 61 69 6E`
 
 ```js
 [ 1 items // Bundle
-  [ 3 items // Record [14] — Media Preview
-    14 // typeId=[14] (global) - Media Preview
+  [ 3 items // Record [7] — Media Preview
+    7 // typeId=[7] (global) - Media Preview
     { 3 keys
       2: "text/plain" uint or tstr // Media Type (even/critical)
-      3: h'129da088d6d361bc' bstr // Content Hash (odd/optional)
-      5: "hello.txt" tstr // Filename (odd/optional)
+      3: h'129da088d6d361bc' bytes // related (odd/optional)
+      5: "hello.txt" bytes // signature (odd/optional)
     }
-    [ 2 items // Record [6] — Media Payload
-      6 // typeId=[6] (global) - Media Payload
+    [ 2 items // Record [3] — Media Payload
+      3 // typeId=[3] (global) - Media Payload
       { 2 keys
         0: h'48656c6c6f206672...' // payload
         1: "text/plain" uint or tstr // Media Type (odd/optional)
@@ -102,15 +102,15 @@ Hex: `51 44 45 46 81 83 44 89 D4 14 E0 01 A3 03 64 68 69 6E 74 0B 6B 64 65 73 63
 ```
 
 
-## Single URL (type [10])
+## Single URL (type [5] — Open/Hint URI)
 
-A minimal Open/Hint URI Record (type [10]) with the URI as payload at key 0.
+A minimal Open/Hint URI Record (type [5]) with the URI as payload at key 0.
 
-Hex: `51 44 45 46 82 0A A1 00 78 18 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 71 64 65 66`
+Hex: `51 44 45 46 82 05 A1 00 78 18 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 71 64 65 66`
 
 ```js
-[ 2 items // Record [10] — Open/Hint URI
-  10 // typeId=[10] (global) - Open/Hint URI
+[ 2 items // Record [5] — Open/Hint URI
+  5 // typeId=[5] (global) - Open/Hint URI
   { 1 keys
     0: "https://example.com/qdef" // payload
   }
@@ -131,7 +131,7 @@ Hex: `51 44 45 46 80`
 
 ## UUID-only Bundle (tag identity)
 
-A minimal payload with just a UUID — identifies the QR tag itself, no content subrecords. Useful for inventory tracking. (Whether the UUID identifies the tag or the container is an open design question — see DESIGN.md.)
+A minimal payload with just a UUID on a Bundle — no content subrecords. Useful for inventory tracking or tag identity. (The spec allows it; which convention an app follows is an open design question.)
 
 Hex: `51 44 45 46 81 A1 22 50 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF`
 
@@ -166,13 +166,13 @@ Hex: `51 44 45 46 83 44 89 D4 14 E0 67 54 61 67 44 72 6F 70 84 40 01 65 52 6F 75
 [ 3 items // TagDrop Record []
   h'89d414e0' (4 B) // namespace: 89d414e0 (TagDrop)
   "TagDrop" // annotation: "TagDrop"
-  [ 4 items // Record [1]
+  [ 4 items // Record [1] — Split
     h'' // namespace: 
-    1 // typeId=[1] (scoped)
+    1 // typeId=[1] (scoped) - Split
     "Route" // annotation: "Route"
     { 2 keys
       0: h'64657374' // payload
-      2: 1 // even/critical
+      2: 1 bstr // Group ID (even/critical)
     }
   ]
 ]

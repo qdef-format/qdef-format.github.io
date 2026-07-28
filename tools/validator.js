@@ -279,7 +279,7 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
     let scopeLabel;
     if (namespace) {
       scopeLabel = 'namespace-scoped';
-    } else if (typeIdUints.length === 1 && firstTid >= 2 && firstTid <= 22) {
+    } else if (typeIdUints.length === 1 && firstTid >= 1 && firstTid <= 22) {
       scopeLabel = 'standard (global)';
     } else {
       scopeLabel = 'application (global)';

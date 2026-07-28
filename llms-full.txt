@@ -32,14 +32,14 @@ A bare tstr anywhere else (no preceding bstr or uints) is malformed.
 
 | TypeId | Name | Key 0 | Key 1 |
 |--------|------|-------|-------|
-| [2] | Split | fragment bytes | — |
-| [4] | Encrypt | ciphertext + tag | — |
-| [6] | Media Payload | content bytes | media type (MIME/CoAP) |
-| [8] | Compress | deflated bytes | — |
-| [10] | Open/Hint URI | URI | label |
-| [12] | App Route | domain/hash | label |
-| [14] | Media Preview | — (content in subrecord) | — |
-| [16] | Signature | signature bytes | — |
+| [1] | Split | fragment bytes | — |
+| [2] | Encrypt | ciphertext + tag | — |
+| [3] | Media Payload | content bytes | media type (MIME/CoAP) |
+| [4] | Compress | deflated bytes | — |
+| [5] | Open/Hint URI | URI | label |
+| [6] | App Route | domain/hash | label |
+| [7] | Media Preview | — (content in subrecord) | — |
+| [8] | Signature | signature bytes | — |
 
 ## Namespace
 
