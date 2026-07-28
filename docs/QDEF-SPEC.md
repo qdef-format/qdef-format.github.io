@@ -406,7 +406,12 @@ which is governed by per-Type even/odd criticality:
 **Key `0` — Payload (RESERVED).** The Record's content payload. A
 text string value is assumed plaintext; a byte string is opaque content
 whose meaning is defined by the Record's own Type. Any other CBOR type
-is also valid. A Bundle (no typeId) MUST NOT carry key `0`.
+is also valid. A Bundle (no typeId) MUST NOT carry key `0`, but it MAY
+carry a map with only metadata keys (e.g. `-3` for a container UUID):
+
+```
+QDEF [{-3: h'<16B UUID>'}, [10, {0: "uri"}]]   // Bundle with UUID + subrecord
+```
 
 **Negative keys — QDEF Common Headers (spec-governed).** These are
 few, spec-maintained only, and never self-allocatable by an
@@ -851,12 +856,14 @@ here too).
 
 A **Bundle** is a structural Record — not a wrapper, not application
 data — for grouping related Records together as subrecords. It has no
-typeId (absent), no payload (no key 0), and no field Map of its own.
-Its meaning is entirely in its subrecords:
+typeId (absent) and no payload (no key 0). It MAY carry a map with
+metadata keys (UUID, ID, etc.) for container-level identity. Its
+meaning is otherwise entirely in its subrecords:
 
 ```
-[]                              // Empty Bundle (container root, no subrecords)
-[[100, {0: "SSID"}], [10, ...]] // Bundle with two subrecords
+[]                              // Empty Bundle (no map)
+[[100, {2: "SSID"}], [10, ...]] // Bundle with two subrecords
+[{-3: h'<16B>'}, [100, ...]]   // Bundle with container UUID
 ```
 
 The container root is implicitly a Bundle whenever its array leads with
