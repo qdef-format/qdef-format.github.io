@@ -273,6 +273,7 @@ QDEF is a binary container format for multi-action 2D barcodes (QR, Data Matrix,
 - Registry: https://qdef-format.github.io/qdef-format/registry.html
 - Implementations: https://qdef-format.github.io/qdef-format/implementations.html
 - Related work: https://qdef-format.github.io/qdef-format/related-work.html
+- Full reference (single page): https://qdef-format.github.io/qdef-format/llms-full.txt
 - Validator tool: https://qdef-format.github.io/qdef-format/tools/validator.html
 - GitHub (prototype): https://github.com/mofosyne/qdef
 - GitHub (website): https://github.com/qdef-format/qdef-format.github.io
@@ -288,6 +289,11 @@ Record shape: [namespace?, ns_annotation?, typeId*, type_annotation?, map?, subr
 `;
 fs.writeFileSync(path.join(OUT, 'llms.txt'), llms);
 console.log('Wrote ' + path.join(OUT, 'llms.txt'));
+
+// Copy llms-full.txt from source (single-page LLM reference)
+const llmsFull = fs.readFileSync(path.join(ROOT, 'llms-full.txt'), 'utf-8');
+fs.writeFileSync(path.join(OUT, 'llms-full.txt'), llmsFull);
+console.log('Wrote ' + path.join(OUT, 'llms-full.txt'));
 
 // Robots
 const robots = `User-agent: *

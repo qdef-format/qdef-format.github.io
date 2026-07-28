@@ -1,0 +1,68 @@
+# QDEF — Quick Data Exchange Format (full reference)
+
+QDEF is a binary container format for multi-action 2D barcodes (QR, Data Matrix, Aztec) and NFC tags. It carries typed, self-describing records in a compact CBOR-based wire format.
+
+## Wire format
+
+4-byte magic: `51 44 45 46` ("QDEF"), followed by root Record.
+
+Record: `[namespace?, ns_annotation?, typeId*, type_annotation?, map?, subrecord*]`
+
+| Slot | CBOR type | Description |
+|------|-----------|-------------|
+| namespace | bstr (major 2) | Optional. h'' = inherit parent. Absent = global. |
+| ns_annotation | tstr (major 3) | Optional. Only after namespace. Human-readable label. |
+| typeId | uint(s) (major 0) | Optional consecutive uints. `[0,N]` removed; `[N]` in 2-22 = standard. |
+| type_annotation | tstr (major 3) | Optional. Only after typeId uints. Human-readable label. |
+| map | map (major 5) | Optional field map. Key 0 = payload. |
+| subrecords | array(s) (major 4) | Remaining arrays, each a nested Record. |
+
+A bare tstr anywhere else (no preceding bstr or uints) is malformed.
+
+## Map keys
+
+| Key | Purpose | Governance |
+|-----|---------|------------|
+| 0 | Payload | RESERVED — same meaning in every Record |
+| 1 | Payload descriptor | RESERVED — optional hint, never load-bearing |
+| < 0 | Common headers | Only -1 (ID) and -3 (UUID) |
+| >= 2 | Type-specific | Per-Type, even=critical, odd=optional |
+
+## Standard types (global, no namespace, numbers 2-22)
+
+| TypeId | Name | Key 0 | Key 1 |
+|--------|------|-------|-------|
+| [2] | Split | fragment bytes | — |
+| [4] | Encrypt | ciphertext + tag | — |
+| [6] | Media Payload | content bytes | media type (MIME/CoAP) |
+| [8] | Compress | deflated bytes | — |
+| [10] | Open/Hint URI | URI | label |
+| [12] | App Route | domain/hash | label |
+| [14] | Media Preview | — (content in subrecord) | — |
+| [16] | Signature | signature bytes | — |
+
+## Namespace
+
+When namespace bstr is present, the typeId is scoped to that namespace — same number in a different namespace (or none) is a different type. Standard types (2-22) ignore namespace.
+
+Namespace value is self-chosen via SHA-256 hash of a reverse-domain string, truncated to 4+ bytes. Empty bstr (h'') inherits parent's namespace.
+
+## Bundle
+
+No typeId, no namespace, no map key 0. Structural grouping container. Subrecords carry the actual content.
+
+## Annotations
+
+Optional text strings in two positions: after namespace (ns_annotation) and after typeId (type_annotation). Human-readable labels, never load-bearing for routing. A decoder MUST preserve but MUST NOT use for any parse-time decision.
+
+## Criticality
+
+Only positive map keys (> 0) have even/odd criticality. Even = unrecognized key aborts that Record. Odd = unrecognized key silently ignored. Key 0 (payload), key 1 (descriptor), and all negative keys are spec-reserved and excluded.
+
+## Canonical encoding
+
+Encoders MUST produce CBOR meeting RFC 8949 §4.2.1 core deterministic encoding: shortest-form integers, definite-length items only, map keys sorted by encoded bytes.
+
+## Full spec
+
+https://qdef-format.github.io/qdef-format/spec.html
