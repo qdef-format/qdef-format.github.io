@@ -259,10 +259,17 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
     if (!typeName && typeIdUints.length === 1 && STANDARD_TYPE_NAMES[String(typeIdUints[0])]) {
       typeName = STANDARD_TYPE_NAMES[String(typeIdUints[0])];
     }
-    const scope = namespace ? ' (scoped)' : ' (global)';
     const firstTid = typeIdUints[0];
-    issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Type ID: [${tidStr}]${scope}${typeName ? ' → ' + typeName : ''}` });
-    annotateItem(items[namespace ? (nsAnnotation ? 2 : 1) : 0], `typeId=[${tidStr}]${scope}${typeName ? ' - ' + typeName : ''}`);
+    let scopeLabel;
+    if (namespace) {
+      scopeLabel = 'namespace-scoped';
+    } else if (typeIdUints.length === 1 && firstTid >= 2 && firstTid <= 22) {
+      scopeLabel = 'standard (global)';
+    } else {
+      scopeLabel = 'application (global)';
+    }
+    issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}Type ID: [${tidStr}] — ${scopeLabel}${typeName ? ' → ' + typeName : ''}` });
+    annotateItem(items[namespace ? (nsAnnotation ? 2 : 1) : 0], `typeId=[${tidStr}] (${scopeLabel})${typeName ? ' - ' + typeName : ''}`);
 
     if (typeAnnotation) {
       annotateItem(typeAnnotation, `type annotation: "${typeAnnotation.value}"`);
