@@ -194,8 +194,14 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
   // Remaining items: subrecords (arrays only, rest skipped silently)
   const subrecords = items.slice(idx).filter(i => i.type === 'array');
 
-  // Effective namespace for cascade
-  const effectiveNamespace = namespace || inheritedNamespace;
+  // Resolve effective namespace for cascade:
+  // - If this record has an explicit namespace (non-empty bstr), use it.
+  // - If it has the inherit marker (h''), inherit parent's.
+  // - If neither, effective is inherited (or undefined at root).
+  const resolveNs = (namespace && namespace.value.length > 0) ? namespace
+    : (namespace && namespace.value.length === 0 && inheritedNamespace) ? inheritedNamespace
+    : (namespace && namespace.value.length === 0) ? null  // inherit marker, no parent → error
+    : inheritedNamespace;
 
   // Build description
   const isBundle = !namespace && typeIdUints.length === 0;
@@ -251,12 +257,12 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
       annotateItem(nsAnnotation, `ns annotation: "${annText}"`);
     }
 
-  } else {
-    issues.push({ level: 'ok', text: `${recLabel}` });
-    if (effectiveNamespace) {
-      regNsHex = bytesToHex(effectiveNamespace.value).replace(/ /g, '');
-    }
-  }
+      } else {
+        issues.push({ level: 'ok', text: `${recLabel}` });
+        if (resolveNs) {
+          regNsHex = bytesToHex(resolveNs.value).replace(/ /g, '');
+        }
+      }
 
   if (typeIdUints.length > 0) {
     const tidStr = typeIdUints.join(',');
@@ -333,7 +339,7 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
   if (subrecords.length > 0) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}${subrecords.length} subrecord(s)` });
     for (let si = 0; si < subrecords.length; si++) {
-      analyzeRecord(subrecords[si], issues, `${label}.${si}`, depth + 1, effectiveNamespace);
+      analyzeRecord(subrecords[si], issues, `${label}.${si}`, depth + 1, resolveNs);
     }
   }
 
