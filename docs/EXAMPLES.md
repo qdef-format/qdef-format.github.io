@@ -129,6 +129,21 @@ Hex: `51 44 45 46 80`
 ```
 
 
+## UUID-only Bundle (tag identity)
+
+A minimal payload with just a UUID — identifies the QR tag itself, no content subrecords. Useful for inventory tracking.
+
+Hex: `51 44 45 46 81 A1 22 50 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF`
+
+```js
+[ 1 items // Bundle
+  { 1 keys
+    -3: h'0011223344556677...' // UUID (common)
+  }
+]
+```
+
+
 ## Invalid: no magic header
 
 A payload missing the QDEF magic header — the validator falls back to raw CBOR parsing and reports the mismatch.
