@@ -532,7 +532,7 @@ namespace for scoping.
 **Currently assigned type IDs:**
 
 | TypeId | Record Type | Section | Notes |
-|---|---|---|---|---|
+|---|---|---|---|
 | (absent) | Bundle | §4.6 | Structural grouping |
 | [1] | Split | §4.1 | Fragment reassembly / parity |
 | [2] | Encrypt | §4.1 | AEAD (e.g. AES-256-GCM) |
