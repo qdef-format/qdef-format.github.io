@@ -293,13 +293,20 @@ function annotateRecordStructure(arr, inheritedNamespace) {
   const ra = analyzeRecord(arr);
   const { namespace, nsAnnotation, typeId, typeIdExplicit, tidItem, typeAnnotation, mapItem, subrecords } = ra;
 
-  // Namespace resolution (§3.5): absent (no bstr at all) = no namespace
-  // and does NOT inherit — a Record with no namespace bstr of its own
-  // breaks the cascade chain for its own subrecords, even if its own
-  // ancestor was scoped. Empty `h''` = inherit the parent's *effective*
-  // namespace (which may itself already be inherited). Non-empty bstr =
-  // this Record's own explicit namespace, which becomes what its
-  // subrecords inherit from.
+  // Namespace resolution (§3.5). A Record's own namespace token decides
+  // ONLY how its own typeId is interpreted -- it does not, by itself,
+  // decide what namespace continues on to its subrecords. Two separate
+  // values:
+  //
+  // - effectiveNamespace: THIS Record's own scope. Absent = global,
+  //   unconditional, regardless of ambient. Empty `h''` = the ambient
+  //   namespace received from the immediate parent. Non-empty bstr =
+  //   this Record's own explicit value.
+  // - namespaceForChildren: what subrecords receive as their own
+  //   ambient. An explicit non-empty bstr resets it; `h''` or absent
+  //   both pass the received ambient straight through unchanged --
+  //   including through a standard type or Bundle whose OWN
+  //   interpretation stayed global.
   let effectiveNamespace;
   if (namespace && namespace.value.length === 0) {
     effectiveNamespace = inheritedNamespace || null;
@@ -308,6 +315,9 @@ function annotateRecordStructure(arr, inheritedNamespace) {
   } else {
     effectiveNamespace = null;
   }
+  const namespaceForChildren = (namespace && namespace.value.length > 0)
+    ? namespace
+    : (inheritedNamespace || null);
   let regNsHex = null;
   if (effectiveNamespace) {
     regNsHex = bytesToHex(effectiveNamespace.value).replace(/ /g, '');
@@ -419,7 +429,7 @@ function annotateRecordStructure(arr, inheritedNamespace) {
 
   // Recurse into subrecords
   for (const sub of subrecords) {
-    annotateRecordStructure(sub, effectiveNamespace);
+    annotateRecordStructure(sub, namespaceForChildren);
   }
 
   return { namespace, typeId, typeIdExplicit, mapItem, subrecords, effectiveNamespace };
