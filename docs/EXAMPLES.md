@@ -146,7 +146,7 @@ Hex: `51 44 45 46 81 A1 22 50 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF`
 
 ## Invalid: no magic header
 
-A payload missing the QDEF magic header — the validator falls back to raw CBOR parsing and reports the mismatch.
+A payload missing the QDEF magic header — the validator falls back to raw CBOR parsing and reports the mismatch. The hex here is a synthetic byte sequence for this demo, not a well-formed single Record, so parsing from byte 0 (correctly, since there's no magic to strip) only consumes the leading uint and reports the rest as unparsed.
 
 Hex: `00 01 02 03 81 01`
 

@@ -53,7 +53,8 @@ function test(label, hex, expectValid, opts) {
 
 // ── Tests from shared validator-examples.js ──────────────────────────────
 for (const ex of VALIDATOR_EXAMPLES) {
-  test(ex.label, ex.hex, ex.expectValid, { expectClean: ex.expectValid });
+  const expectClean = ex.expectClean !== undefined ? ex.expectClean : ex.expectValid;
+  test(ex.label, ex.hex, ex.expectValid, { expectClean });
 }
 
 // ── Additional edge cases ──────────────────────────────────────────────

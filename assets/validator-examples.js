@@ -43,8 +43,9 @@
   },
   {
     label: 'Invalid: no magic header',
-    descriptor: 'A payload missing the QDEF magic header — the validator falls back to raw CBOR parsing and reports the mismatch.',
+    descriptor: 'A payload missing the QDEF magic header — the validator falls back to raw CBOR parsing and reports the mismatch. The hex here is a synthetic byte sequence for this demo, not a well-formed single Record, so parsing from byte 0 (correctly, since there\'s no magic to strip) only consumes the leading uint and reports the rest as unparsed.',
     expectValid: true,
+    expectClean: false,
     hex: '00 01 02 03 81 01'
   },
   {

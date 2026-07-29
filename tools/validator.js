@@ -9,10 +9,6 @@ const {
 
 const QDEF_MAGIC = new Uint8Array([0x51, 0x44, 0x45, 0x46]);
 
-function majorName(m) {
-  return ['uint','nint','bytes','tstr','array','map','tag','simple'][m] || 'unknown';
-}
-
 function fmtCBOR(item) {
   if (!item) return '<li>(null)</li>';
   if (item.type === 'error') return `<li class="tree-error">⚠ ${escapeHtml(item.text)}</li>`;
@@ -113,16 +109,20 @@ function validateQDEF(bytes) {
     }
   }
 
-  // Try to parse root CBOR even without valid magic
+  // Try to parse root CBOR even without valid magic. Only strip the
+  // magic bytes when they actually matched -- a payload with no magic
+  // (legitimate per spec.html §2 for a carrier with its own dispatch
+  // context) must be parsed starting at byte 0, or its first 4 real
+  // bytes get silently eaten before parsing even starts.
   let root = null;
-  const cborStart = bytes.length >= 4 ? 4 : 0;
+  const cborStart = magicOk ? 4 : 0;
   const reader = new CBORReader(bytes.slice(cborStart));
   root = reader.readItem();
 
   if (root && root.type === 'error') {
     issues.push({ level: 'error', text: `Parse error: ${root.text}` });
   } else if (root && root.type !== 'array') {
-    issues.push({ level: 'warn', text: `Root is a CBOR ${majorName(root.type)} — expected an array for QDEF Records` });
+    issues.push({ level: 'warn', text: `Root is a CBOR ${root.type} — expected an array for QDEF Records` });
     root = null;
   } else if (root && root.type === 'array') {
     issues.push({ level: 'ok', text: `Root is a CBOR array with ${root.value.length} item(s)` });
