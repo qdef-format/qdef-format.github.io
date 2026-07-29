@@ -163,12 +163,12 @@ A Bundle with namespace and ns annotation, subrecord uses h'' to inherit the nam
 Hex: `51 44 45 46 83 44 89 D4 14 E0 67 54 61 67 44 72 6F 70 84 40 01 65 52 6F 75 74 65 A2 00 44 64 65 73 74 02 01`
 
 ```js
-[ 3 items // TagDrop Record []
+[ 3 items // Bundle
   h'89d414e0' (4 B) // namespace: 89d414e0 (TagDrop)
   "TagDrop" // annotation: "TagDrop"
-  [ 4 items // Record [1] — Split
-    h'' // namespace: 
-    1 // typeId=[1] (scoped) - Split
+  [ 4 items // TagDrop Record [1] — Content Extension
+    h'' // namespace: (inherited) 89d414e0 (TagDrop)
+    1 // typeId=[1] (scoped) - Content Extension
     "Route" // annotation: "Route"
     { 2 keys
       0: h'64657374' // payload

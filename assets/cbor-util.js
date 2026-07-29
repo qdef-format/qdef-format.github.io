@@ -293,17 +293,39 @@ function annotateRecordStructure(arr, inheritedNamespace) {
   const ra = analyzeRecord(arr);
   const { namespace, nsAnnotation, typeId, typeIdExplicit, tidItem, typeAnnotation, mapItem, subrecords } = ra;
 
-  const effectiveNamespace = namespace || inheritedNamespace;
+  // Namespace resolution (§3.5): absent (no bstr at all) = no namespace
+  // and does NOT inherit — a Record with no namespace bstr of its own
+  // breaks the cascade chain for its own subrecords, even if its own
+  // ancestor was scoped. Empty `h''` = inherit the parent's *effective*
+  // namespace (which may itself already be inherited). Non-empty bstr =
+  // this Record's own explicit namespace, which becomes what its
+  // subrecords inherit from.
+  let effectiveNamespace;
+  if (namespace && namespace.value.length === 0) {
+    effectiveNamespace = inheritedNamespace || null;
+  } else if (namespace) {
+    effectiveNamespace = namespace;
+  } else {
+    effectiveNamespace = null;
+  }
   let regNsHex = null;
   if (effectiveNamespace) {
     regNsHex = bytesToHex(effectiveNamespace.value).replace(/ /g, '');
   }
 
-  const isBundle = !namespace && typeId.length === 0;
+  // A Bundle is defined purely by absent typeId (§4.6) — it MAY still
+  // carry a namespace bstr of its own, e.g. to let its subrecords
+  // cascade from it via `h''` without transmitting the value per-child.
+  const isBundle = typeId.length === 0;
 
   // Annotate namespace
   if (namespace) {
-    let nsAnn = 'namespace: ' + bytesToHex(namespace.value).replace(/ /g, '');
+    let nsAnn;
+    if (namespace.value.length === 0) {
+      nsAnn = 'namespace: (inherited)' + (regNsHex ? ' ' + regNsHex : ' none in scope');
+    } else {
+      nsAnn = 'namespace: ' + bytesToHex(namespace.value).replace(/ /g, '');
+    }
     if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[regNsHex]) {
       const entry = QDEF_REGISTRY[regNsHex];
       nsAnn += ` (${entry.variable || entry.name})`;
