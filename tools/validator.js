@@ -142,6 +142,27 @@ function validateQDEF(bytes) {
   return { valid: issues.filter(i => i.level === 'error').length === 0, root, issues };
 }
 
+// Does this Type (registry-scoped, if nsHex resolves an entry, else a
+// QDEF standard Type) have a known, documented field-key shape at all?
+// If so, does that shape include key 0 (a payload)? Returns null when
+// the Type's shape is unknown entirely -- nothing to check against, an
+// app is free to invent whatever undocumented Type it likes -- and
+// true/false when the shape is known.
+function typeDocumentsKeyZero(typeId, nsHex) {
+  let shape = null;
+  if (nsHex && typeof QDEF_REGISTRY !== 'undefined') {
+    const entry = QDEF_REGISTRY[nsHex];
+    if (entry && entry.types[String(typeId)]) {
+      shape = parseShape(entry.types[String(typeId)].shape);
+    }
+  }
+  if (!shape) {
+    shape = STANDARD_SHAPES[String(typeId)] || null;
+  }
+  if (!shape) return null;
+  return !!shape['0'];
+}
+
 function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
   if (depth > 10) {
     issues.push({ level: 'error', text: `${label}: nesting depth exceeds 10` });
@@ -306,9 +327,25 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
         const k = String(pair.key.value);
         const keyVal = pair.key.value;
 
-        // Key 0 = payload (reserved, not even/odd)
+        // Key 0 = payload (reserved, not even/odd) -- but only for a
+        // Type that actually documents one there. §4 shapes each
+        // standard Type's own key layout (e.g. Media Preview, §4.5,
+        // has none -- content travels as a subrecord instead), and a
+        // registered app Type documents its own via registry.rec.
+        // Cross-check against that instead of accepting any key-0
+        // value unconditionally, regardless of Type.
         if (keyVal === 0) {
           pair.key._ann = `payload (key 0)`;
+          if (typeIdUints.length === 1) {
+            const hasPayload = typeDocumentsKeyZero(typeIdUints[0], regNsHex);
+            if (hasPayload === false) {
+              issues.push({
+                level: 'warn',
+                text: `${label}: Type [${typeIdUints[0]}] doesn't document a payload at key 0 (§4) — got a value there anyway`,
+              });
+              pair.key._ann = `payload (key 0) — undocumented for this Type`;
+            }
+          }
           continue;
         }
 
