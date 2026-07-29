@@ -92,7 +92,9 @@ function escapeHtml(s) {
 // and getFieldDef are all defined in assets/cbor-util.js (CBOR_UTIL).
 
 // QDEF validation
-function validateQDEF(bytes) {
+function validateQDEF(bytes, opts) {
+  opts = opts || {};
+  const strict = !!opts.strict;
   const issues = [];
 
   // Check magic — warn, don't bail
@@ -129,7 +131,7 @@ function validateQDEF(bytes) {
     // Annotate using the shared function (same as examples page)
     annotateRecordStructure(root);
     // Analyze Record structure for validation issues
-    analyzeRecord(root, issues, 'Root', 0);
+    analyzeRecord(root, issues, 'Root', 0, undefined, strict);
   } else if (!root) {
     issues.push({ level: 'warn', text: `No CBOR data found after magic header` });
   }
@@ -142,28 +144,32 @@ function validateQDEF(bytes) {
   return { valid: issues.filter(i => i.level === 'error').length === 0, root, issues };
 }
 
-// Does this Type (registry-scoped, if nsHex resolves an entry, else a
-// QDEF standard Type) have a known, documented field-key shape at all?
-// If so, does that shape include key 0 (a payload)? Returns null when
-// the Type's shape is unknown entirely -- nothing to check against, an
-// app is free to invent whatever undocumented Type it likes -- and
-// true/false when the shape is known.
-function typeDocumentsKeyZero(typeId, nsHex) {
-  let shape = null;
+// This Type's known, documented field-key shape (registry-scoped, if
+// nsHex resolves a registry.rec entry, else a QDEF standard Type via
+// STANDARD_SHAPES) -- or null if we have no shape data for it at all.
+// An app is always free to invent a Type this tool has never heard of;
+// every check built on this returns "nothing to say" in that case,
+// never a false positive.
+function getKnownShape(typeId, nsHex) {
   if (nsHex && typeof QDEF_REGISTRY !== 'undefined') {
     const entry = QDEF_REGISTRY[nsHex];
     if (entry && entry.types[String(typeId)]) {
-      shape = parseShape(entry.types[String(typeId)].shape);
+      const shape = parseShape(entry.types[String(typeId)].shape);
+      if (shape) return shape;
     }
   }
-  if (!shape) {
-    shape = STANDARD_SHAPES[String(typeId)] || null;
-  }
+  return STANDARD_SHAPES[String(typeId)] || null;
+}
+
+// Does this Type's known shape include key 0 (a payload)? Returns null
+// when the Type's shape is unknown entirely -- nothing to check.
+function typeDocumentsKeyZero(typeId, nsHex) {
+  const shape = getKnownShape(typeId, nsHex);
   if (!shape) return null;
   return !!shape['0'];
 }
 
-function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
+function analyzeRecord(arr, issues, label, depth, inheritedNamespace, strict) {
   if (depth > 10) {
     issues.push({ level: 'error', text: `${label}: nesting depth exceeds 10` });
     return null;
@@ -367,6 +373,21 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
           }
         } else {
           pair.key._ann = keyParity;
+          // Strict mode only: an even/critical key this Type's KNOWN
+          // shape doesn't document is exactly what §3.2 requires a
+          // conformant decoder to MUST-abort the whole Record on --
+          // worth flagging, but speculative enough (this tool's local
+          // shape data could simply be stale against a newer, real
+          // extension) to keep opt-in rather than a default warning.
+          if (strict && typeIdUints.length === 1 && keyVal % 2 === 0) {
+            const shape = getKnownShape(typeIdUints[0], regNsHex);
+            if (shape) {
+              issues.push({
+                level: 'warn',
+                text: `${label}: key ${k} is even/critical but Type [${typeIdUints[0]}]'s known shape doesn't document it — a decoder implementing this Type MUST abort on this Record (§3.2) unless key ${k} is a real extension this tool's shape data doesn't know about yet`,
+              });
+            }
+          }
         }
       }
     }
@@ -375,7 +396,7 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
   if (subrecords.length > 0) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}${subrecords.length} subrecord(s)` });
     for (let si = 0; si < subrecords.length; si++) {
-      analyzeRecord(subrecords[si], issues, `${label}.${si}`, depth + 1, namespaceForChildren);
+      analyzeRecord(subrecords[si], issues, `${label}.${si}`, depth + 1, namespaceForChildren, strict);
     }
   }
 

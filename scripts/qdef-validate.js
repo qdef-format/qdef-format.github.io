@@ -6,6 +6,16 @@
 //
 //   npx qdef-validate "51 44 45 46 82 05 A1 00 78 18 68 74 74 70 73 3A ..."
 //   npx qdef-validate 51444546... < payload.hex
+//   npx qdef-validate --strict <hex>
+//
+// --strict enables additional, more speculative checks that are opt-in
+// rather than default because they can only be inferred from this
+// tool's own local shape data (registry.rec / STANDARD_SHAPES), which
+// could be stale against a real, newer extension -- e.g. flagging an
+// even/critical map key a Type's known shape doesn't document, which
+// per §3.2 is exactly what a conformant decoder implementing that Type
+// MUST abort the Record on, but might just be this tool not knowing
+// about a legitimate newer field yet.
 //
 // Output shape: { valid: boolean, issues: [{level, text}, ...], tree: <string> }
 // `tree` is the same indented rendering used elsewhere on the site
@@ -28,11 +38,15 @@ function readStdin() {
 }
 
 async function main() {
-  const arg = process.argv[2];
+  const rawArgs = process.argv.slice(2);
+  const strict = rawArgs.includes('--strict');
+  const positional = rawArgs.filter((a) => a !== '--strict');
+
+  const arg = positional[0];
   const hex = arg !== undefined ? arg : (await readStdin()).trim();
 
   if (!hex) {
-    process.stderr.write('Usage: qdef-validate <hex> (or pipe hex via stdin)\n');
+    process.stderr.write('Usage: qdef-validate [--strict] <hex> (or pipe hex via stdin)\n');
     process.exit(2);
   }
 
@@ -46,7 +60,7 @@ async function main() {
     process.exit(1);
   }
 
-  const result = validateQDEF(bytes);
+  const result = validateQDEF(bytes, { strict });
   const tree = result.root ? renderTreeText(result.root, 0) : null;
 
   process.stdout.write(
