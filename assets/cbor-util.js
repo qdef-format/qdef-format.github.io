@@ -137,61 +137,13 @@ const COMMON_FIELDS = {
   '-3':  { type: 'bstr', name: 'UUID' },
 };
 
-const STANDARD_TYPE_NAMES = {
-  '1': 'Split',
-  '2': 'Encrypt',
-  '3': 'Media Payload',
-  '4': 'Compress',
-  '5': 'Open/Hint URI',
-  '6': 'App Route',
-  '7': 'Media Preview',
-  '8': 'Signature',
-};
-
-const STANDARD_SHAPES = {
-  '1': {
-    '0': { type: 'bstr', name: 'Fragment Bytes (payload)' },
-    '2': { type: 'bstr', name: 'Group ID' },
-    '4': { type: 'uint', name: 'Fragment Index' },
-    '6': { type: 'uint', name: 'Fragment Count' },
-    '7': { type: 'uint', name: 'Total Bytes', optional: true },
-    '9': { type: 'uint', name: 'Parity Scheme', optional: true },
-  },
-  '2': {
-    '0': { type: 'bstr', name: 'Ciphertext + Tag (payload)' },
-    '2': { type: 'bstr', name: 'Nonce' },
-    '3': { type: 'uint or tstr', name: 'Algorithm', optional: true },
-    '5': { type: 'uint or tstr', name: 'Key Algorithm', optional: true },
-  },
-  '3': {
-    '0': { type: 'bstr', name: 'Content (payload)' },
-    '1': { type: 'uint or tstr', name: 'Media Type', optional: true },
-  },
-  '4': {
-    '0': { type: 'bstr', name: 'Deflated Bytes (payload)' },
-  },
-  '5': {
-    '0': { type: 'tstr', name: 'URI (payload)' },
-    '1': { type: 'tstr', name: 'Label', optional: true },
-    '3': { type: 'tstr', name: 'Language', optional: true },
-    '5': { type: 'uint', name: 'Action', optional: true },
-  },
-  '6': {
-    '0': { type: 'tstr or bstr', name: 'Origin (payload)' },
-    '1': { type: 'tstr', name: 'Hint Name', optional: true },
-  },
-  '7': {
-    '2': { type: 'uint or tstr', name: 'Media Type' },
-    '3': { type: 'bstr', name: 'Content Hash', optional: true },
-    '5': { type: 'tstr', name: 'Filename', optional: true },
-    '7': { type: 'tstr', name: 'Label', optional: true },
-  },
-  '8': {
-    '0': { type: 'bstr', name: 'Signature (payload)' },
-    '2': { type: 'nint', name: 'Algorithm' },
-    '4': { type: 'bstr', name: 'Public Key' },
-  },
-};
+// Generated from standard-types.rec at build time (assets/standard-types-data.js,
+// loaded before this file) -- or set directly on `global` by the Node
+// loaders (scripts/load-validator.js, scripts/gen-examples.js) that eval
+// this file headlessly. Never hardcoded here: standard-types.rec is the
+// single source of truth for standard Record Type field shapes.
+const STANDARD_TYPE_NAMES = global.QDEF_STANDARD_TYPE_NAMES || {};
+const STANDARD_SHAPES = global.QDEF_STANDARD_SHAPES || {};
 
 // ── Field name resolution ─────────────────────────────────────────────
 

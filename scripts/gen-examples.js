@@ -36,6 +36,14 @@ if (!globalThis.QDEF_REGISTRY) {
   globalThis.QDEF_REGISTRY = byId;
 }
 
+// Same guard as QDEF_REGISTRY above: build from standard-types.rec unless
+// the caller (build.js) already set these globals.
+if (!globalThis.QDEF_STANDARD_SHAPES) {
+  const std = require('./standard-types').build(ROOT);
+  globalThis.QDEF_STANDARD_TYPE_NAMES = std.names;
+  globalThis.QDEF_STANDARD_SHAPES = std.shapes;
+}
+
 // Shared CBOR decoder + field metadata + annotation + tree renderer.
 const assetPath = path.join(ROOT, 'assets', 'cbor-util.js');
 eval(fs.readFileSync(assetPath, 'utf-8'));

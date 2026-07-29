@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { marked } = require('marked');
 const recfile = require('./recfile');
+const standardTypes = require('./standard-types');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, '_site');
@@ -162,10 +163,48 @@ function byNamespace(rt) {
 }
 
 let registryBody = '';
+
+// Standard Record Types section, from standard-types.rec -- the spec's own
+// Standards Action-governed types (§4), distinct from the community/FCFS
+// namespace registry below.
+const stdRecords = recfile.parse(path.join(ROOT, 'standard-types.rec'));
+const stdTypes = recfile.getFlat(stdRecords, 'StandardType');
+
+registryBody += '<section style="margin-bottom:2rem">';
+registryBody += '<h2 id="standard-record-types">Standard Record Types (§4)</h2>';
+registryBody += '<p>These are the QDEF spec\'s own Record Types, TypeId range 1&ndash;22, '
+  + '<strong>Standards Action</strong> governed &mdash; changes go through the spec itself '
+  + '(<a href="spec.html">QDEF-SPEC.md §4</a>), not a standalone registration PR. Tracked machine-readably in '
+  + '<a href="https://github.com/qdef-format/qdef/blob/main/standard-types.rec"><code>standard-types.rec</code></a>. '
+  + 'Bundle (§4.6) carries no TypeId and no fixed field shape, so it has no entry below.</p>';
+registryBody += '<table><thead><tr>'
+  + '<th>TypeId</th><th>Name</th><th>Section</th><th>Data Item</th><th>Semantics</th>'
+  + '</tr></thead><tbody>';
+for (const t of stdTypes) {
+  const tid = recfile.get(t, 'TypeId');
+  if (!tid) continue; // recfile.js appends a spurious empty record at EOF
+  const tname = recfile.get(t, 'RecordTypeName') || '';
+  const section = recfile.get(t, 'Section') || '';
+  const shape = recfile.get(t, 'DataItem') || '';
+  const semantics = recfile.get(t, 'Semantics') || '';
+  registryBody += '<tr>'
+    + `<td><code>[${tid}]</code></td>`
+    + `<td>${tname}</td>`
+    + `<td>${section ? `§${section}` : ''}</td>`
+    + `<td><code style="font-size:0.8rem">${shape}</code></td>`
+    + `<td>${semantics}</td>`
+    + '</tr>';
+}
+registryBody += '</tbody></table>';
+registryBody += '</section>';
+
+registryBody += '<section style="margin-bottom:2rem">';
+registryBody += '<h2 id="namespace-registry">Namespace Registry</h2>';
 registryBody += '<p>This is the canonical registry of QDEF namespaces and their Record Types. '
   + 'To submit a new registration, open a pull request that adds a Namespace entry '
   + 'to <a href="https://github.com/qdef-format/qdef/blob/main/registry.rec"><code>registry.rec</code></a> '
   + 'or use the <a href="tools/registry-generator.html">Registry Generator</a> to draft one.</p>';
+registryBody += '</section>';
 
 if (namespaces.length === 0) {
   registryBody += '<p><em>No namespaces registered yet.</em></p>';
@@ -220,11 +259,11 @@ if (namespaces.length === 0) {
 
 let registryPage = shell
   .replace('__TITLE__', 'Registry')
-  .replace('__DESCRIPTION__', 'QDEF Namespace Registry — registered namespaces and Record Types.')
+  .replace('__DESCRIPTION__', 'QDEF Registry — standard Record Types (§4) and registered community namespaces.')
   .replace('__OGURL__', 'registry.html')
   .replace('__CONTENT__', registryBody);
 
-registryPage = registryPage.replace('<main class="container content">', '<main class="container">\n<h1>QDEF Namespace Registry</h1>');
+registryPage = registryPage.replace('<main class="container content">', '<main class="container">\n<h1>QDEF Registry</h1>');
 
 fs.writeFileSync(path.join(OUT, 'registry.html'), registryPage);
 console.log('Wrote ' + path.join(OUT, 'registry.html'));
@@ -256,9 +295,20 @@ const registryJs = 'const QDEF_REGISTRY = ' + JSON.stringify(nsById, null, 2) + 
 fs.writeFileSync(path.join(OUT, 'assets', 'registry-data.js'), registryJs);
 console.log('Wrote ' + path.join(OUT, 'assets', 'registry-data.js'));
 
+// Generate standard-types-data.js from standard-types.rec (the spec's own
+// Standards Action-governed Record Types, §4) -- same pattern as
+// registry-data.js above, for the community/namespaced side.
+const std = standardTypes.build(ROOT);
+const stdJs = 'const QDEF_STANDARD_TYPE_NAMES = ' + JSON.stringify(std.names, null, 2) + ';\n'
+  + 'const QDEF_STANDARD_SHAPES = ' + JSON.stringify(std.shapes, null, 2) + ';\n';
+fs.writeFileSync(path.join(OUT, 'assets', 'standard-types-data.js'), stdJs);
+console.log('Wrote ' + path.join(OUT, 'assets', 'standard-types-data.js'));
+
 // Regenerate EXAMPLES.md using the same registry data.
-// Pass the already-built nsById to avoid re-parsing registry.rec.
+// Pass the already-built nsById/std to avoid re-parsing registry.rec / standard-types.rec.
 globalThis.QDEF_REGISTRY = nsById;
+globalThis.QDEF_STANDARD_TYPE_NAMES = std.names;
+globalThis.QDEF_STANDARD_SHAPES = std.shapes;
 require('./gen-examples');
 
 // LLM-friendly content index

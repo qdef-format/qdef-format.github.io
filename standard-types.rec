@@ -1,0 +1,83 @@
+# QDEF Standard Record Type Registry
+#
+# This file is the canonical, machine-readable field registry for the
+# spec's own standard Record Types (QDEF-SPEC.md §4) -- the low
+# TypeId range 1-22, Standards Action governed. It is written in the
+# GNU recfile format, same as registry.rec, so tooling can build
+# STANDARD_TYPE_NAMES / STANDARD_SHAPES from it directly instead of
+# duplicating the shape data by hand in assets/cbor-util.js.
+#
+# Unlike registry.rec (community namespaces, open to PRs from anyone --
+# see the First Come First Served tier, §3.5/§3.6), every entry here is
+# Governance: standards-action -- changes go through the spec itself
+# (QDEF-SPEC.md §4), not a standalone registration PR. Bundle (§4.6)
+# carries no TypeId and no fixed field shape, so it has no entry below;
+# it stays documented in the spec prose only.
+
+%rec: StandardType
+%mandatory: TypeId RecordTypeName Governance
+%sort: TypeId
+
+TypeId: 1
+RecordTypeName: Split
+Section: 4.1
+Governance: standards-action
+DataItem: map { 0: bstr (Fragment Bytes), 2: bstr (Group ID), 4: uint (Fragment Index), 6: uint (Fragment Count), 7: uint (Total Bytes, opt), 9: uint (Parity Scheme, opt) }
+Semantics: Fragment reassembly across a multi-code group, with optional XOR parity recovery.
+Reference: docs/QDEF-SPEC.md#41-wrapper-records-optional
+
+TypeId: 2
+RecordTypeName: Encrypt
+Section: 4.1
+Governance: standards-action
+DataItem: map { 0: bstr (Ciphertext + Tag), 2: bstr (Nonce), 3: uint or tstr (Algorithm, opt), 5: uint or tstr (Key Algorithm, opt) }
+Semantics: AEAD wrapper (e.g. AES-256-GCM); algorithm fields borrow the COSE Algorithm ID registry.
+Reference: docs/QDEF-SPEC.md#41-wrapper-records-optional
+
+TypeId: 3
+RecordTypeName: Media Payload
+Section: 4.3
+Governance: standards-action
+DataItem: map { 0: bstr (Content), 1: uint or tstr (Media Type, opt) }
+Semantics: Typed binary content; media_type is a CoAP Content-Format ID or a literal MIME string.
+Reference: docs/QDEF-SPEC.md#43-media-payload-optional
+
+TypeId: 4
+RecordTypeName: Compress
+Section: 4.1
+Governance: standards-action
+DataItem: map { 0: bstr (Deflated Bytes) }
+Semantics: DEFLATE wrapper.
+Reference: docs/QDEF-SPEC.md#41-wrapper-records-optional
+
+TypeId: 5
+RecordTypeName: Open/Hint URI
+Section: 4.2
+Governance: standards-action
+DataItem: map { 0: tstr (URI), 1: tstr (Label, opt), 3: tstr (Language, opt), 5: uint (Action, opt) }
+Semantics: URI a generic tool can open; fallback/hint for containers with richer content.
+Reference: docs/QDEF-SPEC.md#42-openhint-uri-optional
+
+TypeId: 6
+RecordTypeName: App Route
+Section: 4.4
+Governance: standards-action
+DataItem: map { 0: tstr or bstr (Origin), 1: tstr (Hint Name, opt) }
+Semantics: Application dispatch by verified domain or hash-derived name.
+Reference: docs/QDEF-SPEC.md#44-app-route-optional
+
+TypeId: 7
+RecordTypeName: Media Preview
+Section: 4.5
+Governance: standards-action
+DataItem: map { 2: uint or tstr (Media Type), 3: bstr (Content Hash, opt), 5: tstr (Filename, opt), 7: tstr (Label, opt) }
+Semantics: Content identification (media type, multihash-style hash, filename, label) independent of the payload bytes, which travel as a subrecord.
+Reference: docs/QDEF-SPEC.md#45-media-preview-optional
+
+TypeId: 8
+RecordTypeName: Signature
+Section: 4.7
+Governance: standards-action
+DataItem: map { 0: bstr (Signature), 2: nint (Algorithm), 4: bstr (Public Key) }
+Semantics: Detached authenticity over the Records immediately preceding it in the same array.
+Reference: docs/QDEF-SPEC.md#47-signature-optional

@@ -10,11 +10,11 @@ TagDrop uses QDEF as its byte-mode container for physical delivery codes. The pr
 
 ### Node.js (full design)
 
-A round-trip prototype covering the full QDEF design — container framing, Record routing, Wrapper Records (Split, Compress, Encrypt), App Route, and the Signature mechanism. Source at [`/prototype`](https://github.com/qdef-format/qdef/tree/main/prototype).
+A round-trip prototype covering the full QDEF design — container framing, Record routing, Wrapper Records (Split, Compress, Encrypt), App Route, and the Signature mechanism. Source at [`/prototype`](https://github.com/mofosyne/qdef/tree/main/prototype).
 
 ### Rust / `no_std` (mandatory core only)
 
-A zero-dependency Rust prototype of the mandatory core parser, targeting `no_std` environments including bare-metal Cortex-M0. Covers container framing, Record routing, and even/odd criticality — no standard library records. Source at [`/rust/qdef-core`](https://github.com/qdef-format/qdef/tree/main/rust/qdef-core).
+A zero-dependency Rust prototype of the mandatory core parser, targeting `no_std` environments including bare-metal Cortex-M0. Covers container framing, Record routing, and even/odd criticality — no standard library records. Source at [`/rust/qdef-core`](https://github.com/mofosyne/qdef/tree/main/rust/qdef-core).
 
 ---
 

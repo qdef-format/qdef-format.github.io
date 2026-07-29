@@ -18,6 +18,7 @@
 const fs = require('fs');
 const path = require('path');
 const recfile = require('./recfile');
+const standardTypes = require('./standard-types');
 
 function buildRegistry(rootDir) {
   const records = recfile.parse(path.join(rootDir, 'registry.rec'));
@@ -55,6 +56,9 @@ function loadValidator(rootDir) {
   const ROOT = rootDir || path.join(__dirname, '..');
 
   globalThis.QDEF_REGISTRY = buildRegistry(ROOT);
+  const std = standardTypes.build(ROOT);
+  globalThis.QDEF_STANDARD_TYPE_NAMES = std.names;
+  globalThis.QDEF_STANDARD_SHAPES = std.shapes;
   eval(fs.readFileSync(path.join(ROOT, 'assets', 'cbor-util.js'), 'utf-8'));
 
   const valSrc = fs
