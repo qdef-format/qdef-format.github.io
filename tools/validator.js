@@ -197,13 +197,17 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
   // Remaining items: subrecords (arrays only, rest skipped silently)
   const subrecords = items.slice(idx).filter(i => i.type === 'array');
 
-  // Resolve effective namespace for cascade:
-  // - If this record has an explicit namespace (non-empty bstr), use it.
-  // - If it has the inherit marker (h''), inherit parent's.
-  // - If neither, effective is inherited (or undefined at root).
-  const resolveNs = (namespace && namespace.value.length > 0) ? namespace
-    : (namespace && namespace.value.length === 0 && inheritedNamespace) ? inheritedNamespace
-    : (namespace && namespace.value.length === 0) ? null  // inherit marker, no parent → error
+  // Namespace resolution (§3.5). A Record's own namespace token decides
+  // ONLY how its own typeId is interpreted -- absent is unconditionally
+  // global for itself, regardless of ambient. What passes to
+  // subrecords is a separate question: an explicit namespace resets
+  // it, but h'' or absent both pass the received ambient straight
+  // through unchanged.
+  const ownNamespace = (namespace && namespace.value.length > 0) ? namespace
+    : (namespace && namespace.value.length === 0) ? (inheritedNamespace || null)
+    : null;
+  const namespaceForChildren = (namespace && namespace.value.length > 0)
+    ? namespace
     : inheritedNamespace;
 
   // Build description
@@ -254,8 +258,8 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
 
       } else {
         issues.push({ level: 'ok', text: `${recLabel}` });
-        if (resolveNs) {
-          regNsHex = bytesToHex(resolveNs.value).replace(/ /g, '');
+        if (ownNamespace) {
+          regNsHex = bytesToHex(ownNamespace.value).replace(/ /g, '');
         }
       }
 
@@ -334,7 +338,7 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
   if (subrecords.length > 0) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}${subrecords.length} subrecord(s)` });
     for (let si = 0; si < subrecords.length; si++) {
-      analyzeRecord(subrecords[si], issues, `${label}.${si}`, depth + 1, resolveNs);
+      analyzeRecord(subrecords[si], issues, `${label}.${si}`, depth + 1, namespaceForChildren);
     }
   }
 
@@ -345,7 +349,7 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace) {
       issues.push({ level: 'error', text: `${label}: Bundle MUST NOT carry a payload (key 0)` });
     }
   }
-  if (!namespace && typeIdUints.length === 1 && typeIdUints[0] >= 2 && typeIdUints[0] <= 22) {
+  if (!namespace && typeIdUints.length === 1 && typeIdUints[0] >= 1 && typeIdUints[0] <= 22) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}→ Standard QDEF type [${typeIdUints[0]}] (global)` });
   }
 
