@@ -680,8 +680,8 @@ a plain, unwrapped Record.
 
 ### 4.2 Open/Hint URI (optional)
 
-Unlike §4.1, this is deliberately **not** a wrapper — a plain standard record type Record
-Type meant to sit as a *sibling* alongside real content records in the same
+Unlike §4.1, this is deliberately **not** a wrapper — a plain standard
+Record Type meant to sit as a *sibling* alongside real content records in the same
 array, carrying a URI any generic tool can follow if it doesn't
 understand anything else in the container. It's not exclusively a
 fallback: the identical Record is also the right choice for a QR code
@@ -720,10 +720,10 @@ restricts how many Records of the same Type appear in one array.
 
 ### 4.3 Media Payload (optional)
 
-A plain standard record type Record Type — not a wrapper — for attaching a standard,
+A plain standard Record Type — not a wrapper — for attaching a standard,
 already-widely-recognized media type (a JPEG thumbnail, a vCard, a PDF
 snippet) without registering a bespoke Type ID for every possible file
-format the way Examples does for application-specific content:
+format, the way an application-specific Record Type (§5) would:
 
 ```
 Type 3:                            // Media Payload (standard record type)
@@ -751,7 +751,7 @@ if that registry ever goes unmaintained.
 
 ### 4.4 App Route (optional)
 
-A plain standard record type Record — not a wrapper — for letting a generic
+A plain standard Record Type — not a wrapper — for letting a generic
 QDEF-aware scanner offer to launch a specific handling application,
 comparable to NFC's Android Application Record (AAR) or platform
 Intent-filter dispatch, without the scanner needing any
@@ -825,7 +825,7 @@ else first.
 
 ### 4.5 Media Preview (optional)
 
-A plain standard record type Record — not a wrapper — for identifying a
+A plain standard Record Type — not a wrapper — for identifying a
 content item (media type, content hash, filename, human-readable label)
 independently of the content bytes themselves, which travel as this
 Record's own subrecord (§3):
