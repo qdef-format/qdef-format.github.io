@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { marked } = require('marked');
 const recfile = require('./recfile');
+const standardTypes = require('./standard-types');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, '_site');
@@ -256,9 +257,20 @@ const registryJs = 'const QDEF_REGISTRY = ' + JSON.stringify(nsById, null, 2) + 
 fs.writeFileSync(path.join(OUT, 'assets', 'registry-data.js'), registryJs);
 console.log('Wrote ' + path.join(OUT, 'assets', 'registry-data.js'));
 
+// Generate standard-types-data.js from standard-types.rec (the spec's own
+// Standards Action-governed Record Types, §4) -- same pattern as
+// registry-data.js above, for the community/namespaced side.
+const std = standardTypes.build(ROOT);
+const stdJs = 'const QDEF_STANDARD_TYPE_NAMES = ' + JSON.stringify(std.names, null, 2) + ';\n'
+  + 'const QDEF_STANDARD_SHAPES = ' + JSON.stringify(std.shapes, null, 2) + ';\n';
+fs.writeFileSync(path.join(OUT, 'assets', 'standard-types-data.js'), stdJs);
+console.log('Wrote ' + path.join(OUT, 'assets', 'standard-types-data.js'));
+
 // Regenerate EXAMPLES.md using the same registry data.
-// Pass the already-built nsById to avoid re-parsing registry.rec.
+// Pass the already-built nsById/std to avoid re-parsing registry.rec / standard-types.rec.
 globalThis.QDEF_REGISTRY = nsById;
+globalThis.QDEF_STANDARD_TYPE_NAMES = std.names;
+globalThis.QDEF_STANDARD_SHAPES = std.shapes;
 require('./gen-examples');
 
 // LLM-friendly content index
