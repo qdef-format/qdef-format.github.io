@@ -263,7 +263,7 @@ let registryPage = shell
   .replace('__OGURL__', 'registry.html')
   .replace('__CONTENT__', registryBody);
 
-registryPage = registryPage.replace('<main class="container content">', '<main class="container">\n<h1>QDEF Registry</h1>');
+registryPage = registryPage.replace('<main class="container content">', '<main class="container content">\n<h1>QDEF Registry</h1>');
 
 fs.writeFileSync(path.join(OUT, 'registry.html'), registryPage);
 console.log('Wrote ' + path.join(OUT, 'registry.html'));
