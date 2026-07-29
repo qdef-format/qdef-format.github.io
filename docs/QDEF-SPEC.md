@@ -700,7 +700,6 @@ Type 5:                            // Open/Hint URI (standard record type)
                                         //   0 = perform the action (open
                                         //   the URI), 1 = save for later,
                                         //   2 = open for editing
-}
 ```
 
 This is what gives a QDEF container the "something useful happens even
@@ -769,7 +768,6 @@ Type 6:                            // App Route (standard record type) — hash-
   0: h'<truncated SHA-256>',        // PAYLOAD: hash-derived byte string
                                      //   value (key 0)
   1: "com.example/tagdrop-paper"    // OPTIONAL: Hint name
-}
 ```
 
 **Key `0` may be a domain string or a hash-derived byte string — two
@@ -840,7 +838,6 @@ Type 7:                            // Media Preview (standard record type)
                                      //   hash -- see below
   5: "photo.png",                   // OPTIONAL: filename or slug
   7: "Trail photo"                  // OPTIONAL: human-readable label
-}
 ```
 
 **Key `3` is a multihash-style value, not raw SHA-256** (and not §3.5's
