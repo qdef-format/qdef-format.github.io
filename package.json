@@ -6,6 +6,9 @@
   "directories": {
     "doc": "docs"
   },
+  "bin": {
+    "qdef-validate": "scripts/qdef-validate.js"
+  },
   "scripts": {
     "test": "node scripts/test-validator.js",
     "build": "node scripts/build.js"

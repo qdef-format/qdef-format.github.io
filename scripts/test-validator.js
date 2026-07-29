@@ -1,25 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..');
+const { loadValidator } = require('./load-validator');
 
-globalThis.QDEF_REGISTRY = JSON.parse(
-  fs.readFileSync(path.join(ROOT, '_site', 'assets', 'registry-data.js'), 'utf-8')
-    .replace('const QDEF_REGISTRY = ', '').replace(/;\n$/, '')
-);
+// Shared headless loader (also used by scripts/qdef-validate.js) --
+// builds QDEF_REGISTRY from registry.rec directly, loads cbor-util.js
+// and validator.js with the DOM-only wiring stripped.
+const { validateQDEF, fmtCBOR, CBOR_UTIL } = loadValidator(ROOT);
 
-// Load shared CBOR utilities
-eval(fs.readFileSync(path.join(ROOT, 'assets', 'cbor-util.js'), 'utf-8'));
-
-// Load examples from the shared data file
+// Load examples from the shared data file (test-only, not part of the
+// shared loader since the CLI doesn't need them).
 eval(fs.readFileSync(path.join(ROOT, 'assets', 'validator-examples.js'), 'utf-8'));
-
-const valSrc = fs.readFileSync(path.join(ROOT, 'tools', 'validator.js'), 'utf-8');
-// Strip browser-only code (populateExamples references document)
-const cleanSrc = valSrc
-  .replace(/function populateExamples[\s\S]*?^}/m, 'function populateExamples() {}')
-  .replace(/function loadExample[\s\S]*?^}/m, 'function loadExample() {}')
-  .replace(/populateExamples\(\);/g, '');
-eval(cleanSrc);
 
 let passed = 0;
 let failed = 0;
