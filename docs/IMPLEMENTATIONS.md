@@ -18,4 +18,4 @@ A zero-dependency Rust prototype of the mandatory core parser, targeting `no_std
 
 ---
 
-**Adding your project?** Open an issue or PR on [GitHub](https://github.com/qdef-format/qdef-format).
+**Adding your project?** Open an issue or PR on [GitHub](https://github.com/qdef-format/qdef-format.github.io).

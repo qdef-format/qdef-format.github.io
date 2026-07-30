@@ -548,7 +548,7 @@ range.
 
 The field-level shape of each numbered type (1–8) is also tracked
 machine-readably in
-[`standard-types.rec`](https://github.com/qdef-format/qdef/blob/main/standard-types.rec)
+[`standard-types.rec`](https://github.com/qdef-format/qdef-format.github.io/blob/main/standard-types.rec)
 — the counterpart to `registry.rec` (§3.5's community namespace
 registry), but Standards Action governed: changes go through the spec
 itself, not a standalone registration PR. Bundle has no fixed field

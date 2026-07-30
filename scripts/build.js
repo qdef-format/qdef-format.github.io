@@ -55,7 +55,7 @@ const pageMap = {
   'EXAMPLES.md': 'examples.html',
   'IMPLEMENTATIONS.md': 'implementations.html',
   'RELATED-WORK.md': 'related-work.html',
-  'IMPLEMENTATION-NOTES.md': 'https://github.com/qdef-format/qdef/blob/main/docs/IMPLEMENTATION-NOTES.md'
+  'IMPLEMENTATION-NOTES.md': 'https://github.com/qdef-format/qdef-format.github.io/blob/main/docs/IMPLEMENTATION-NOTES.md'
 };
 
 function fixDocLinks(html) {
@@ -69,10 +69,10 @@ function fixDocLinks(html) {
       return `href="${target}${frag}"`;
     }
     const frag = fragment ? `#${fragment}` : '';
-    return `href="https://github.com/qdef-format/qdef/blob/main/docs/${filePart}${frag}"`;
+    return `href="https://github.com/qdef-format/qdef-format.github.io/blob/main/docs/${filePart}${frag}"`;
   });
-  html = html.replace(/href="\.\.\/(prototype\/?)"/g, 'href="https://github.com/qdef-format/qdef/tree/main/prototype"');
-  html = html.replace(/href="\.\.\/rust\/qdef-core\/?"/g, 'href="https://github.com/qdef-format/qdef/tree/main/rust/qdef-core"');
+  html = html.replace(/href="\.\.\/(prototype\/?)"/g, 'href="https://github.com/mofosyne/qdef/tree/main/prototype"');
+  html = html.replace(/href="\.\.\/rust\/qdef-core\/?"/g, 'href="https://github.com/mofosyne/qdef/tree/main/rust/qdef-core"');
   return html;
 }
 
@@ -175,7 +175,7 @@ registryBody += '<h2 id="standard-record-types">Standard Record Types (§4)</h2>
 registryBody += '<p>These are the QDEF spec\'s own Record Types, TypeId range 1&ndash;22, '
   + '<strong>Standards Action</strong> governed &mdash; changes go through the spec itself '
   + '(<a href="spec.html">QDEF-SPEC.md §4</a>), not a standalone registration PR. Tracked machine-readably in '
-  + '<a href="https://github.com/qdef-format/qdef/blob/main/standard-types.rec"><code>standard-types.rec</code></a>. '
+  + '<a href="https://github.com/qdef-format/qdef-format.github.io/blob/main/standard-types.rec"><code>standard-types.rec</code></a>. '
   + 'Bundle (§4.6) carries no TypeId and no fixed field shape, so it has no entry below.</p>';
 registryBody += '<table><thead><tr>'
   + '<th>TypeId</th><th>Name</th><th>Section</th><th>Data Item</th><th>Semantics</th>'
@@ -202,7 +202,7 @@ registryBody += '<section style="margin-bottom:2rem">';
 registryBody += '<h2 id="namespace-registry">Namespace Registry</h2>';
 registryBody += '<p>This is the canonical registry of QDEF namespaces and their Record Types. '
   + 'To submit a new registration, open a pull request that adds a Namespace entry '
-  + 'to <a href="https://github.com/qdef-format/qdef/blob/main/registry.rec"><code>registry.rec</code></a> '
+  + 'to <a href="https://github.com/qdef-format/qdef-format.github.io/blob/main/registry.rec"><code>registry.rec</code></a> '
   + 'or use the <a href="tools/registry-generator.html">Registry Generator</a> to draft one.</p>';
 registryBody += '</section>';
 
@@ -318,13 +318,13 @@ QDEF is a binary container format for multi-action 2D barcodes (QR, Data Matrix,
 
 ## Key pages
 
-- Spec (normative): https://qdef-format.github.io/qdef-format/spec.html
-- Examples: https://qdef-format.github.io/qdef-format/examples.html
-- Registry: https://qdef-format.github.io/qdef-format/registry.html
-- Implementations: https://qdef-format.github.io/qdef-format/implementations.html
-- Related work: https://qdef-format.github.io/qdef-format/related-work.html
-- Full reference (single page): https://qdef-format.github.io/qdef-format/llms-full.txt
-- Validator tool: https://qdef-format.github.io/qdef-format/tools/validator.html
+- Spec (normative): https://qdef-format.github.io/spec.html
+- Examples: https://qdef-format.github.io/examples.html
+- Registry: https://qdef-format.github.io/registry.html
+- Implementations: https://qdef-format.github.io/implementations.html
+- Related work: https://qdef-format.github.io/related-work.html
+- Full reference (single page): https://qdef-format.github.io/llms-full.txt
+- Validator tool: https://qdef-format.github.io/tools/validator.html
 - GitHub (prototype): https://github.com/mofosyne/qdef
 - GitHub (website): https://github.com/qdef-format/qdef-format.github.io
 
@@ -332,10 +332,10 @@ QDEF is a binary container format for multi-action 2D barcodes (QR, Data Matrix,
 
 Record shape: [namespace?, ns_annotation?, typeId*, type_annotation?, map?, subrecord*]
 - namespace: optional bstr, h'' = inherit parent, absent = global
-- typeId: consecutive uints, [N] with N in 2-22 for standard types
+- typeId: consecutive uints, [N] with N in 1-22 for standard types
 - map key 0 = payload, key 1 = descriptor, keys > 0 with even/odd criticality
 - Negative keys: -1 (ID), -3 (UUID) only
-- Standard types: [2]=Split, [4]=Encrypt, [6]=Media Payload, [8]=Compress, [10]=Open/Hint URI, [12]=App Route, [14]=Media Preview, [16]=Signature
+- Standard types: [1]=Split, [2]=Encrypt, [3]=Media Payload, [4]=Compress, [5]=Open/Hint URI, [6]=App Route, [7]=Media Preview, [8]=Signature
 `;
 fs.writeFileSync(path.join(OUT, 'llms.txt'), llms);
 console.log('Wrote ' + path.join(OUT, 'llms.txt'));
@@ -348,7 +348,7 @@ console.log('Wrote ' + path.join(OUT, 'llms-full.txt'));
 // Robots
 const robots = `User-agent: *
 Allow: /
-Sitemap: https://qdef-format.github.io/qdef-format/sitemap.xml
+Sitemap: https://qdef-format.github.io/sitemap.xml
 `;
 fs.writeFileSync(path.join(OUT, 'robots.txt'), robots);
 console.log('Wrote ' + path.join(OUT, 'robots.txt'));

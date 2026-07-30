@@ -65,4 +65,4 @@ Encoders MUST produce CBOR meeting RFC 8949 §4.2.1 core deterministic encoding:
 
 ## Full spec
 
-https://qdef-format.github.io/qdef-format/spec.html
+https://qdef-format.github.io/spec.html

@@ -4,7 +4,7 @@ QDEF is a general-purpose binary container for multi-action 2D barcodes
 (QR, Data Matrix, Aztec) and NFC tags — carry one or more typed records
 in a single scan or tap.
 
-This repository hosts the [QDEF website](https://qdef-format.github.io/qdef/)
+This repository hosts the [QDEF website](https://qdef-format.github.io/)
 and the canonical specification documents.
 
 ## Repository structure

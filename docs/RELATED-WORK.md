@@ -169,7 +169,7 @@ mechanism.
 
 | Dimension | QDEF | NDEF | BBQr | MCAP | CBOR tags |
 |-----------|------|------|------|------|-----------|
-| **Specification** | [spec](https://qdef-format.github.io/qdef-format/spec.html) | [NFC Forum](https://nfc-forum.org/) | [bbqr.org](https://bbqr.org/BBQr.html) | [mcap.dev](https://mcap.dev/spec) | [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949) |
+| **Specification** | [spec](https://qdef-format.github.io/spec.html) | [NFC Forum](https://nfc-forum.org/) | [bbqr.org](https://bbqr.org/BBQr.html) | [mcap.dev](https://mcap.dev/spec) | [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949) |
 | **Target channel** | QR, NFC | NFC only | QR only | File/stream | Encoding, not container |
 | **Multi-record** | ✅ Yes | ✅ Yes | ❌ Single type per series | ✅ Yes | — |
 | **Per-field criticality** | ✅ Even/odd rule | ❌ No | ❌ No | ❌ No | — |
