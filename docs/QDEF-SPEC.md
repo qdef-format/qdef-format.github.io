@@ -811,7 +811,12 @@ it finds any recognized Record Type (§3).
 - *The domain form* SHOULD repeat verbatim on every code if the adopter
   wants auto-launch to work from whichever code is scanned first.
   Restricting it to one designated code is also valid; auto-launch then
-  only fires from that code.
+  only fires from that code. **When restricting it, put it on the code
+  carrying Split's `Fragment Index` (§4.1) `0`** — reusing that existing
+  field as the designation instead of an ad hoc printed label, so a
+  scanner (and a human choosing where to point a camera first) has one
+  unambiguous "start here" code rather than needing new out-of-band
+  convention.
 - *The hash-derived form* SHOULD repeat on every code, more strongly
   than the domain form — its entire value is rejecting an
   obviously-unrelated scan *before* reassembly, which a copy on only
