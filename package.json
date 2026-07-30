@@ -11,20 +11,21 @@
   },
   "scripts": {
     "test": "node scripts/test-validator.js",
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "lint": "node scripts/lint-docs.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/qdef-format/qdef.git"
+    "url": "git+https://github.com/qdef-format/qdef-format.github.io.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/qdef-format/qdef/issues"
+    "url": "https://github.com/qdef-format/qdef-format.github.io/issues"
   },
-  "homepage": "https://github.com/qdef-format/qdef#readme",
+  "homepage": "https://github.com/qdef-format/qdef-format.github.io#readme",
   "dependencies": {
     "marked": "^18.0.7"
   }

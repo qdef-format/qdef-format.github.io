@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint docs
+        run: node scripts/lint-docs.js
+
       - name: Build site into _site/
         run: node scripts/build.js
 
