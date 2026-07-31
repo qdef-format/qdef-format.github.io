@@ -168,7 +168,8 @@ mechanism.
 
 ## GS1 Digital Link
 
-GS1 Digital Link (also standardized as ISO/IEC 18975:2024) is GS1's
+[GS1 Digital Link](https://www.gs1.org/standards/gs1-digital-link) (also
+standardized as ISO/IEC 18975:2024) is GS1's
 web-first successor to its Application Identifier (AI) element-string
 syntax — encoding product/logistics data (GTIN, batch, expiry, and so on)
 as an ordinary HTTPS URL that any phone camera resolves like a link, with
@@ -221,17 +222,17 @@ minting app, can decode it) would be a genuine future addition.
 
 | Dimension | QDEF | NDEF | BBQr | MCAP | CBOR tags | GS1 Digital Link |
 |-----------|------|------|------|------|-----------|-------------------|
-| **Specification** | [spec](https://qdef-format.github.io/spec.html) | [NFC Forum](https://nfc-forum.org/) | [bbqr.org](https://bbqr.org/BBQr.html) | [mcap.dev](https://mcap.dev/spec) | [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949) | GS1 / ISO/IEC 18975:2024 |
+| **Specification** | [spec](https://qdef-format.github.io/spec.html) | [NFC Forum](https://nfc-forum.org/) | [bbqr.org](https://bbqr.org/BBQr.html) | [mcap.dev](https://mcap.dev/spec) | [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949) | [GS1 Digital Link](https://www.gs1.org/standards/gs1-digital-link) / ISO/IEC 18975:2024 |
 | **Target channel** | QR, NFC | NFC only | QR only | File/stream | Encoding, not container | Any URL-capable scan |
 | **Multi-record** | ✅ Yes | ✅ Yes | ❌ Single type per series | ✅ Yes | — | ❌ One identifier per URL |
 | **Per-field criticality** | ✅ Even/odd rule | ❌ No | ❌ No | ❌ No | — | ❌ No |
 | **Byte-mode encoding** | ✅ Yes | ✅ Yes | ❌ Alphanumeric | ✅ Yes | ✅ Yes | ❌ Text/URL native |
 | **Magic header** | `QDEF` (4 B) | Implicit (NFC protocol) | `BBQr` (4 B) | `MCAP` (4 B) | None | None (`https://` + resolver domain) |
-| **Wire format** | CBOR Sequence | Custom TLV | Custom | Custom + protobuf | CBOR item | URI (AI element string or Digital Link path/query) |
+| **Wire format** | CBOR Sequence | Custom TLV | Custom | Custom + protobuf | CBOR item | URI (GS1 Application Identifier element string or Digital Link path/query) |
 | **Splitting** | ⚠️ Specified, not yet implemented | ❌ No | ✅ Series-level | ✅ Chunk-level | ❌ No | ❌ No |
-| **Compression** | ✅ Yes (Type 4, DEFLATE) | ❌ No | ❌ No | ✅ Container-level | ❌ No | ⚠️ Optional (AI-to-binary + base64url) |
+| **Compression** | ✅ Yes (Type 4, DEFLATE) | ❌ No | ❌ No | ✅ Container-level | ❌ No | ⚠️ Optional (GS1 Application-Identifier-to-binary + base64url) |
 | **Reference library** | ❌ None | ✅ Platform SDKs | ✅ Reference implementations | ✅ C++/Python/TypeScript | ✅ Dozens across languages | ✅ GS1 Digital Link Toolkit + community libraries |
-| **Registry governance** | Proposed, not established | NFC Forum | Informal | Foxglove | IANA | GS1 (AI registry) |
+| **Registry governance** | Proposed, not established | NFC Forum | Informal | Foxglove | IANA | GS1 (Application Identifier registry) |
 | **MIME type** | `application/vnd.qdef` (vendor) | ❌ No standalone | ❌ No | ❌ No | — | ❌ No (plain URL) |
 | **Production use** | ⏳ None yet | ✅ Billions of tags | ✅ Bitcoin wallets | ✅ Robotics | ✅ Widespread | ✅ Massive retail/logistics deployment |
 | **Open standard** | Personal draft (CC0) | ✅ NFC Forum specification | ✅ Open source specification | ✅ Open source specification | ✅ IETF RFC | ✅ GS1 / ISO standard (not IETF) |
