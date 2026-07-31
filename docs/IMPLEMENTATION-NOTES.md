@@ -130,6 +130,10 @@ differently depending on what the data actually needs.
 
 ## Worked example: a fallback link that's also a parseable Record
 
+This pattern emerged from an open design discussion and isn't yet a
+recommended convention — it's a demonstration that the spec already
+supports it, not guidance the project has reviewed or adopted.
+
 Open/Hint URI (§4.2) is deliberately "just a URL, nothing more" — the
 whole point is that a decoder understanding nothing else in the container
 still gets a working link. But an app that *does* understand more
