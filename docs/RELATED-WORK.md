@@ -168,7 +168,8 @@ mechanism.
 
 ## GS1 Digital Link
 
-GS1 Digital Link (also standardized as ISO/IEC 18975:2024) is GS1's
+[GS1 Digital Link](https://www.gs1.org/standards/gs1-digital-link) (also
+standardized as ISO/IEC 18975:2024) is GS1's
 web-first successor to its Application Identifier (AI) element-string
 syntax — encoding product/logistics data (GTIN, batch, expiry, and so on)
 as an ordinary HTTPS URL that any phone camera resolves like a link, with
@@ -221,7 +222,7 @@ minting app, can decode it) would be a genuine future addition.
 
 | Dimension | QDEF | NDEF | BBQr | MCAP | CBOR tags | GS1 Digital Link |
 |-----------|------|------|------|------|-----------|-------------------|
-| **Specification** | [spec](https://qdef-format.github.io/spec.html) | [NFC Forum](https://nfc-forum.org/) | [bbqr.org](https://bbqr.org/BBQr.html) | [mcap.dev](https://mcap.dev/spec) | [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949) | GS1 / ISO/IEC 18975:2024 |
+| **Specification** | [spec](https://qdef-format.github.io/spec.html) | [NFC Forum](https://nfc-forum.org/) | [bbqr.org](https://bbqr.org/BBQr.html) | [mcap.dev](https://mcap.dev/spec) | [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949) | [GS1 Digital Link](https://www.gs1.org/standards/gs1-digital-link) / ISO/IEC 18975:2024 |
 | **Target channel** | QR, NFC | NFC only | QR only | File/stream | Encoding, not container | Any URL-capable scan |
 | **Multi-record** | ✅ Yes | ✅ Yes | ❌ Single type per series | ✅ Yes | — | ❌ One identifier per URL |
 | **Per-field criticality** | ✅ Even/odd rule | ❌ No | ❌ No | ❌ No | — | ❌ No |
