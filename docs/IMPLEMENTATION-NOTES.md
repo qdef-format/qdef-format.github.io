@@ -127,3 +127,84 @@ None of these needed a new wrapper, a new field-value shape, or a spec
 change — they're all just applications of §3.2's field-value-shape rule,
 §1's repeated-Records model, and §4.1/§4.3's existing standard record types, combined
 differently depending on what the data actually needs.
+
+## Worked example: a fallback link that's also a parseable Record
+
+Open/Hint URI (§4.2) is deliberately "just a URL, nothing more" — the
+whole point is that a decoder understanding nothing else in the container
+still gets a working link. But an app that *does* understand more
+shouldn't have to throw that context away and start a plain HTTP fetch
+from scratch. GS1 Digital Link faces the same tension for its
+Application-Identifier data and resolves it by compressing values
+straight into the URI (see `RELATED-WORK.md`). QDEF can get the same
+benefit two ways, both using mechanisms the spec already defines — no new
+field, no new Wrapper, no spec change.
+
+### Pattern A — correlate with a sibling Record via ID
+
+If the Open/Hint URI Record and a richer sibling Record are always
+scanned together (same tap, same code or code group), share the QDEF
+common `ID` (key `-1`, §3's Common Headers) between them:
+
+```
+Type 5:  { 0: "https://example.com/order/9F2C", -1: "order-9f2c" }  // Open/Hint URI
+Type <N>: { 0: {...order fields...},            -1: "order-9f2c" }  // sibling Record
+```
+
+A generic browser or scanner ignores key `-1` entirely and just opens the
+URL — it isn't part of the URI string, so §4.2's fallback guarantee is
+untouched. A QDEF-aware app instead finds the sibling Record by matching
+`ID` and skips the network round-trip. Nothing new here: `ID` already
+exists specifically "for correlating Records within the same scan/tap"
+(§3).
+
+**Use this when the link is only meaningful inside its original
+container** — a URL copied out and shared standalone loses the sibling
+Record and just degrades to a plain link, which is fine if that's an
+acceptable fallback.
+
+### Pattern B — embed the Record directly in the URI
+
+If the link needs to keep working *after* it leaves the container —
+copied out of the QR code, forwarded by text, opened from browser history
+days later — put the sibling Record's own CBOR bytes, base64url-encoded,
+into a query parameter on the URI itself:
+
+```
+Type 5: {
+  0: "https://example.com/order?d=<base64url-CBOR-bytes-of-a-Record>"
+}
+```
+
+- A plain browser sends the whole URL to the server as normal — nothing
+  here requires a "Record-aware" client for the fallback to work.
+- The **server** behind that domain (which minted the QDEF container in
+  the first place) can decode the same parameter and render richer
+  content — one encoding, so there's no risk of the URL and an embedded
+  field drifting out of sync with each other.
+- A QDEF-aware **app** intercepting the link (e.g. via App Route's
+  domain-verified dispatch, §4.4) decodes the identical parameter
+  locally, skipping the network round-trip.
+
+This costs more bytes than Pattern A (the Record travels inside the
+URL's text, subject to percent-encoding overhead) in exchange for
+surviving outside the container. **The parameter name (`d` above) is not
+a QDEF-reserved convention** — today this is an app-specific choice,
+agreed out of band between whoever mints the link and whoever consumes
+it. Reserving a standard name (so generic tooling could recognize and
+decode it without app-specific knowledge) is a plausible future spec
+addition, not something this pattern requires today.
+
+### Decision summary
+
+| Question | Points toward |
+|---|---|
+| Only meaningful together with its original container? | A (ID correlation) |
+| Must keep working if copied out and shared alone? | B (embed in URI) |
+| Both apply — some consumers get it in-container, others might see it standalone? | Both: set `ID` **and** embed the parameter |
+
+Like the Calendar example above, neither pattern needed a new Wrapper, a
+new field-value shape, or a spec change — Pattern A is §3's `ID` field
+doing its documented job, and Pattern B is a convention for what goes
+*inside* the existing plain-string URI value, not a change to Open/Hint
+URI's shape at all.

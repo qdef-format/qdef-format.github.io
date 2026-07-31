@@ -17,6 +17,7 @@ The closest analogs fall into four groups:
 | **QR-specific containers** | BBQr, TagDrop | Magic header, single-scan payload, QR-targeted | Multi-type records within one scan, even/odd rule, CBOR Sequence wire format |
 | **General typed-record containers** | MCAP | Magic bytes + sequence of self-describing typed records | Optical/NFC constraint target, even/odd, no indexing or seeking |
 | **Binary serialization** | CBOR, MessagePack, BSON | Compact binary encoding | Not a container — these are the *encoding* QDEF uses internally (CBOR), not alternative containers |
+| **Identifier/URI encodings** | GS1 Digital Link | URI/fallback-link concept, a growing need for compact structured data | Multi-record container, per-field criticality, binary (CBOR) from the wire up rather than a compression layer bolted onto text |
 
 ## NDEF (NFC Data Exchange Format)
 
@@ -165,21 +166,72 @@ mechanism.
   splitting across multiple QR codes, and QDEF Split within each symbol
   for logical splitting within a group of Records.
 
+## GS1 Digital Link
+
+GS1 Digital Link (also standardized as ISO/IEC 18975:2024) is GS1's
+web-first successor to its Application Identifier (AI) element-string
+syntax — encoding product/logistics data (GTIN, batch, expiry, and so on)
+as an ordinary HTTPS URL that any phone camera resolves like a link, with
+an optional compression scheme that binary-encodes the AI/value pairs and
+base64url-embeds them in the URI when a plain multi-segment URL gets too
+long.
+
+**What GS1 Digital Link does well:**
+- Universal resolvability — no app-specific parser needed, any browser or
+  QR scanner just opens the link
+- A mature AI registry covering a huge range of supply-chain and retail
+  identifiers
+- A defined compression scheme (AI-to-binary lookup plus packed encoding,
+  then base64url) for when the plain multi-segment URL form is too long
+- Real production deployment across retail and logistics at enormous
+  scale
+
+**Where QDEF diverges:**
+- **Not a multi-record container.** A GS1 Digital Link URL carries one
+  identifier's worth of AI data. QDEF carries multiple heterogeneous typed
+  Records — a URL, a payload, an app route — in a single scan.
+- **No per-field criticality.** There's no even/odd-style mechanism for a
+  GS1 URL consumer to skip fields it doesn't recognize gracefully; AI
+  syntax and Digital Link path/query rules are fixed by the GS1 registry,
+  not decoder-negotiable per field.
+- **Compression is bolted on for density, not built in.** GS1's
+  compression scheme is an optional escape hatch layered onto a
+  fundamentally text/URL-based format. QDEF is binary (CBOR) from the
+  wire up, so it never needed an equivalent retrofit.
+- **Governance.** GS1 Digital Link is governed by GS1 and formalized as
+  ISO/IEC 18975:2024 — an ISO/GS1 standard, not an IETF RFC, though it
+  builds on RFC 3986 URI syntax underneath.
+
+**Evolution note.** QDEF's Open/Hint URI (§4.2) is intentionally "just a
+plain URL, nothing more," for the same universal-resolvability reason GS1
+Digital Link chose a URL in the first place. That raises an obvious
+question: could QDEF grow toward GS1's own move — packing structured data
+compactly into (or alongside) that URL — without weakening the "always
+works for a dumb reader" guarantee that's the entire point of Open/Hint
+URI? It turns out yes, using mechanisms QDEF already has: the `ID` common
+header for same-scan correlation with a sibling Record, or embedding a
+Record's CBOR bytes as a URL query parameter for a link that needs to
+survive outside the container. See
+[`IMPLEMENTATION-NOTES.md`](IMPLEMENTATION-NOTES.md) for both patterns
+worked out. Neither needs a spec change today — only reserving a standard
+parameter name for the embed pattern (so generic tooling, not just the
+minting app, can decode it) would be a genuine future addition.
+
 ## Comparison Table
 
-| Dimension | QDEF | NDEF | BBQr | MCAP | CBOR tags |
-|-----------|------|------|------|------|-----------|
-| **Specification** | [spec](https://qdef-format.github.io/spec.html) | [NFC Forum](https://nfc-forum.org/) | [bbqr.org](https://bbqr.org/BBQr.html) | [mcap.dev](https://mcap.dev/spec) | [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949) |
-| **Target channel** | QR, NFC | NFC only | QR only | File/stream | Encoding, not container |
-| **Multi-record** | ✅ Yes | ✅ Yes | ❌ Single type per series | ✅ Yes | — |
-| **Per-field criticality** | ✅ Even/odd rule | ❌ No | ❌ No | ❌ No | — |
-| **Byte-mode encoding** | ✅ Yes | ✅ Yes | ❌ Alphanumeric | ✅ Yes | ✅ Yes |
-| **Magic header** | `QDEF` (4 B) | Implicit (NFC protocol) | `BBQr` (4 B) | `MCAP` (4 B) | None |
-| **Wire format** | CBOR Sequence | Custom TLV | Custom | Custom + protobuf | CBOR item |
-| **Splitting** | ⚠️ Specified, not yet implemented | ❌ No | ✅ Series-level | ✅ Chunk-level | ❌ No |
-| **Compression** | ✅ Yes (Type 8, DEFLATE) | ❌ No | ❌ No | ✅ Container-level | ❌ No |
-| **Reference library** | ❌ None | ✅ Platform SDKs | ✅ Reference implementations | ✅ C++/Python/TypeScript | ✅ Dozens across languages |
-| **Registry governance** | Proposed, not established | NFC Forum | Informal | Foxglove | IANA |
-| **MIME type** | `application/vnd.qdef` (vendor) | ❌ No standalone | ❌ No | ❌ No | — |
-| **Production use** | ⏳ None yet | ✅ Billions of tags | ✅ Bitcoin wallets | ✅ Robotics | ✅ Widespread |
-| **Open standard** | Personal draft (CC0) | ✅ NFC Forum specification | ✅ Open source specification | ✅ Open source specification | ✅ IETF RFC |
+| Dimension | QDEF | NDEF | BBQr | MCAP | CBOR tags | GS1 Digital Link |
+|-----------|------|------|------|------|-----------|-------------------|
+| **Specification** | [spec](https://qdef-format.github.io/spec.html) | [NFC Forum](https://nfc-forum.org/) | [bbqr.org](https://bbqr.org/BBQr.html) | [mcap.dev](https://mcap.dev/spec) | [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949) | GS1 / ISO/IEC 18975:2024 |
+| **Target channel** | QR, NFC | NFC only | QR only | File/stream | Encoding, not container | Any URL-capable scan |
+| **Multi-record** | ✅ Yes | ✅ Yes | ❌ Single type per series | ✅ Yes | — | ❌ One identifier per URL |
+| **Per-field criticality** | ✅ Even/odd rule | ❌ No | ❌ No | ❌ No | — | ❌ No |
+| **Byte-mode encoding** | ✅ Yes | ✅ Yes | ❌ Alphanumeric | ✅ Yes | ✅ Yes | ❌ Text/URL native |
+| **Magic header** | `QDEF` (4 B) | Implicit (NFC protocol) | `BBQr` (4 B) | `MCAP` (4 B) | None | None (`https://` + resolver domain) |
+| **Wire format** | CBOR Sequence | Custom TLV | Custom | Custom + protobuf | CBOR item | URI (AI element string or Digital Link path/query) |
+| **Splitting** | ⚠️ Specified, not yet implemented | ❌ No | ✅ Series-level | ✅ Chunk-level | ❌ No | ❌ No |
+| **Compression** | ✅ Yes (Type 8, DEFLATE) | ❌ No | ❌ No | ✅ Container-level | ❌ No | ⚠️ Optional (AI-to-binary + base64url) |
+| **Reference library** | ❌ None | ✅ Platform SDKs | ✅ Reference implementations | ✅ C++/Python/TypeScript | ✅ Dozens across languages | ✅ GS1 Digital Link Toolkit + community libraries |
+| **Registry governance** | Proposed, not established | NFC Forum | Informal | Foxglove | IANA | GS1 (AI registry) |
+| **MIME type** | `application/vnd.qdef` (vendor) | ❌ No standalone | ❌ No | ❌ No | — | ❌ No (plain URL) |
+| **Production use** | ⏳ None yet | ✅ Billions of tags | ✅ Bitcoin wallets | ✅ Robotics | ✅ Widespread | ✅ Massive retail/logistics deployment |
+| **Open standard** | Personal draft (CC0) | ✅ NFC Forum specification | ✅ Open source specification | ✅ Open source specification | ✅ IETF RFC | ✅ GS1 / ISO standard (not IETF) |
