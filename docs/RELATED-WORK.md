@@ -210,13 +210,18 @@ question: could QDEF grow toward GS1's own move — packing structured data
 compactly into (or alongside) that URL — without weakening the "always
 works for a dumb reader" guarantee that's the entire point of Open/Hint
 URI? It turns out yes, using mechanisms QDEF already has: the `ID` common
-header for same-scan correlation with a sibling Record, or embedding a
+header for same-scan correlation with a sibling Record, embedding a
 Record's CBOR bytes as a URL query parameter for a link that needs to
-survive outside the container. See
-[`IMPLEMENTATION-NOTES.md`](IMPLEMENTATION-NOTES.md) for both patterns
-worked out. Neither needs a spec change today — only reserving a standard
-parameter name for the embed pattern (so generic tooling, not just the
-minting app, can decode it) would be a genuine future addition.
+survive outside the container, or using the Record's own field keys
+directly as query param names — readable and hand-editable, without
+needing an app-specific naming scheme. See
+[`IMPLEMENTATION-NOTES.md`](IMPLEMENTATION-NOTES.md) for all three
+patterns worked out. None needs a spec change today — only reserving a
+standard parameter name for the embed pattern, or adopting the optional
+per-URL name-mapping field the third pattern floats, would be genuine
+future additions. This whole line of exploration is an evolution
+pathway, not a proposal on the table — a record of how far the existing
+rules already stretch.
 
 ## Comparison Table
 

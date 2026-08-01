@@ -141,8 +141,9 @@ shouldn't have to throw that context away and start a plain HTTP fetch
 from scratch. GS1 Digital Link faces the same tension for its
 Application-Identifier data and resolves it by compressing values
 straight into the URI (see `RELATED-WORK.md`). QDEF can get the same
-benefit two ways, both using mechanisms the spec already defines — no new
-field, no new Wrapper, no spec change.
+benefit a few ways, all using mechanisms the spec already defines or a
+small, fully backward-compatible extension of them — no new Wrapper, no
+change to Open/Hint URI's existing shape.
 
 ### Pattern A — correlate with a sibling Record via ID
 
@@ -172,7 +173,18 @@ acceptable fallback.
 If the link needs to keep working *after* it leaves the container —
 copied out of the QR code, forwarded by text, opened from browser history
 days later — put the sibling Record's own CBOR bytes, base64url-encoded,
-into a query parameter on the URI itself:
+into a query parameter on the URI itself.
+
+This is one point along an evolution pathway, not a fixed destination —
+Pattern B trades legibility for density, which only matters because the
+URL is also carrying QR byte-budget weight. A scanner-software developer
+doesn't actually need an opaque blob to get code reuse; the Record's own
+CBOR keys can just as well become the query string's keys directly,
+explored as Pattern C below. Pattern B still put here first because it's
+the most direct translation of GS1 Digital Link's own compression move —
+whether it or Pattern C fits better depends on how much a given app's
+scanner code wants readable, hand-editable query strings versus maximum
+density:
 
 ```
 Type 5: {
@@ -199,16 +211,76 @@ it. Reserving a standard name (so generic tooling could recognize and
 decode it without app-specific knowledge) is a plausible future spec
 addition, not something this pattern requires today.
 
+### Pattern C — the sibling Record's own keys as query param names
+
+A URL query string doesn't require identifier-like keys — digits and `-`
+are unreserved characters in a URI, so a Record's own integer field keys
+work verbatim as query param names, common headers included:
+
+```
+Type 5: {
+  0: "https://example.com/order?2=2025-12-31&4=ABC123&-1=order-9f2c"
+}
+```
+
+Any QDEF-aware decoder can translate this back into `{2: "2025-12-31",
+4: "ABC123", -1: "order-9f2c"}` mechanically, with **zero knowledge of
+what Type this is or what those fields mean** — the same generic,
+Type-agnostic property that makes the rest of QDEF's routing work without
+per-app code. That's the property an app-invented scheme like `?date=...`
+never had: translating `date` back to field `2` requires knowing this
+specific app's naming choice ahead of time.
+
+**Two things this needs that a raw integer key doesn't give for free:**
+
+- **Value serialization per CBOR type.** Integers and text strings
+  translate to query-string text trivially; byte strings need a defined
+  text form (hex or base64url); arrays and maps don't have an obvious
+  flat `key=value` shape — those fields would need bracket/repeat
+  conventions, or just fall back to Pattern B's blob for that field only
+  while the rest stay as plain integer-keyed params.
+- **Readable names, if wanted, are a per-URL choice, not a Record-wide
+  one.** Rather than baking a name table into the Record itself (which
+  would force one naming scheme on every consumer, and would need a new
+  spec-governed common header to stay collision-safe — §3 is explicit
+  that the negative-key space is "never self-allocatable by an
+  application"), an Open/Hint URI Record can carry its own optional
+  mapping field, local to that one link: e.g. `9: {2: "date", 4:
+  "batch"}` translates field `2` to `?date=...` and field `4` to
+  `?batch=...` for *this* URL specifically. §4.2 already allows repeating
+  Open/Hint URI once per variant ("multiple languages or URIs need no new
+  mechanism") — the same repetition covers multiple destinations wanting
+  different query-key naming, each correlated to the same sibling Record
+  via `ID`, each with its own mapping field:
+
+```
+Type 5: { 0: "https://example.com/order?2=2025-12-31&4=ABC123",
+          9: {2: "date", 4: "batch"}, -1: "order-9f2c" }   // human-readable variant
+Type 5: { 0: "https://partner.example/o?2=2025-12-31&4=ABC123",
+          -1: "order-9f2c" }                                // plain-integer variant, no mapping needed
+```
+
+A decoder that doesn't recognize key `9` still recovers every field by
+its raw integer key — the mapping is purely optional legibility sugar,
+never required to parse the URL correctly.
+
 ### Decision summary
 
 | Question | Points toward |
 |---|---|
 | Only meaningful together with its original container? | A (ID correlation) |
-| Must keep working if copied out and shared alone? | B (embed in URI) |
-| Both apply — some consumers get it in-container, others might see it standalone? | Both: set `ID` **and** embed the parameter |
+| Must keep working if copied out and shared alone, and density matters more than legibility? | B (embed in URI) |
+| Must keep working if copied out and shared alone, and hand-editable/readable query keys matter? | C (keys as query params) |
+| Both apply — some consumers get it in-container, others might see it standalone? | Combine: set `ID` **and** use B or C |
 
-Like the Calendar example above, neither pattern needed a new Wrapper, a
-new field-value shape, or a spec change — Pattern A is §3's `ID` field
-doing its documented job, and Pattern B is a convention for what goes
-*inside* the existing plain-string URI value, not a change to Open/Hint
-URI's shape at all.
+Like the Calendar example above, none of these patterns needed a new
+Wrapper or a new field-value shape — Pattern A is §3's `ID` field doing
+its documented job, and Patterns B and C are both just conventions for
+what goes *inside* the existing plain-string URI value, not a change to
+Open/Hint URI's shape at all. Pattern C's optional name-mapping field
+(key `9` above) is the one genuinely new field being floated here, and
+even that stays fully backward compatible — odd/optional, ignorable by
+any decoder that doesn't care about it — so adopting it later costs
+nothing today. None of this is a proposal to change the spec; it's a
+record of how far the existing rules already stretch, and where the
+remaining gaps are if someone wants to standardize further.
