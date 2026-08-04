@@ -7,9 +7,9 @@
   },
   {
     label: 'TagDrop Route (scoped)',
-    descriptor: 'A scoped Record under namespace h\'89d414e0\' (TagDrop) with typeId [1], payload at key 0.',
+    descriptor: 'A Bundle carrying namespace h\'89d414e0\' (TagDrop) for its subrecord (§3.5 -- a namespace bstr only ever cascades, never scopes its own Record), whose negative typeId [-1] adopts it, payload at key 0.',
     expectValid: true,
-    hex: '51 44 45 46 81 83 44 89 D4 14 E0 01 A2 00 48 53 6F 6D 65 44 65 73 74 02 01'
+    hex: '51 44 45 46 82 44 89 D4 14 E0 82 20 A2 00 48 53 6F 6D 65 44 65 73 74 02 01'
   },
   {
     label: 'Media Preview + Payload',
@@ -19,9 +19,9 @@
   },
   {
     label: 'TagDrop Content Extension',
-    descriptor: 'A scoped Record (typeId [1]) under namespace h\'89d414e0\' with three extension fields.',
+    descriptor: 'A Bundle carrying namespace h\'89d414e0\' (TagDrop) for its subrecord, whose negative typeId [-1] adopts it, with three extension fields.',
     expectValid: true,
-    hex: '51 44 45 46 81 83 44 89 D4 14 E0 01 A3 03 64 68 69 6E 74 0B 6B 64 65 73 63 72 69 70 74 69 6F 6E 0D 42 01 02'
+    hex: '51 44 45 46 82 44 89 D4 14 E0 82 20 A3 03 64 68 69 6E 74 0B 6B 64 65 73 63 72 69 70 74 69 6F 6E 0D 42 01 02'
   },
   {
     label: 'Single URL (type [5] — Open/Hint URI)',
@@ -53,5 +53,11 @@
     descriptor: 'A Bundle with namespace and ns annotation, subrecord uses a negative typeId (-1) to inherit the namespace (§3.5).',
     expectValid: true,
     hex: '51 44 45 46 83 44 89 D4 14 E0 67 54 61 67 44 72 6F 70 83 20 65 52 6F 75 74 65 A2 00 44 64 65 73 74 02 01'
+  },
+  {
+    label: 'Namespace present but typeId stays global (inert)',
+    descriptor: 'A namespace bstr only ever cascades to subrecords (§3.5) — it never scopes its own Record. This typeId [5] is a non-negative Open/Hint URI, so it reads as global regardless of the TagDrop namespace sitting right next to it; the namespace has no subrecords here to cascade to.',
+    expectValid: true,
+    hex: '51 44 45 46 83 44 89 D4 14 E0 05 A1 00 78 18 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 71 64 65 66'
   }
 ];

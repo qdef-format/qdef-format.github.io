@@ -272,34 +272,23 @@ function annotateRecordStructure(arr, inheritedNamespace) {
   const ra = analyzeRecord(arr);
   const { namespace, nsAnnotation, typeId, typeIdExplicit, typeIdNegative, tidItem, typeAnnotation, mapItem, subrecords } = ra;
 
-  // Namespace resolution (§3.5). A Record's own scoping decision decides
-  // ONLY how its own typeId is interpreted -- it does not, by itself,
-  // decide what namespace continues on to its subrecords. Two separate
-  // values:
+  // Namespace resolution (§3.5). A namespace bstr's ONLY job is to set
+  // the ambient namespace for subrecords -- it never scopes the
+  // Record's own typeId. A Record's own scope is decided purely by its
+  // own typeId's sign, independent of whether a bstr sits on the same
+  // Record:
   //
-  // - effectiveNamespace: THIS Record's own scope. No namespace bstr +
-  //   non-negative typeId = global, unconditional, regardless of
-  //   ambient. No namespace bstr + negative typeId = the ambient
-  //   namespace received from the immediate parent. Explicit non-empty
-  //   bstr = this Record's own value. An empty bstr (`h''`) is no
-  //   longer valid -- negative typeId replaced it -- best-effort read
-  //   as an inherit attempt so the tool can flag it.
+  // - effectiveNamespace: THIS Record's own scope. Non-negative typeId
+  //   = always global, unconditional, regardless of any bstr present
+  //   here or any ambient flowing through. Negative typeId = the
+  //   ambient namespace received from the immediate parent -- never
+  //   this Record's own bstr, which only ever affects subrecords.
   // - namespaceForChildren: what subrecords receive as their own
-  //   ambient. An explicit non-empty bstr resets it; no bstr at all
-  //   (regardless of typeId sign) passes the received ambient straight
-  //   through unchanged -- including through a standard type or Bundle
-  //   whose OWN interpretation stayed global.
+  //   ambient. An explicit non-empty bstr resets it (regardless of this
+  //   Record's own typeId or scope); no bstr at all passes the received
+  //   ambient straight through unchanged.
   const namespaceIsEmptyBstr = !!(namespace && namespace.value.length === 0);
-  let effectiveNamespace;
-  if (namespaceIsEmptyBstr) {
-    effectiveNamespace = inheritedNamespace || null;
-  } else if (namespace) {
-    effectiveNamespace = namespace;
-  } else if (typeIdNegative) {
-    effectiveNamespace = inheritedNamespace || null;
-  } else {
-    effectiveNamespace = null;
-  }
+  const effectiveNamespace = typeIdNegative ? (inheritedNamespace || null) : null;
   const namespaceForChildren = (namespace && namespace.value.length > 0)
     ? namespace
     : (inheritedNamespace || null);
@@ -313,17 +302,19 @@ function annotateRecordStructure(arr, inheritedNamespace) {
   // cascade from it without transmitting the value per-child.
   const isBundle = typeId.length === 0;
 
-  // Annotate namespace
+  // Annotate namespace -- always a cascade-only declaration, whatever
+  // this Record's own typeId turns out to be.
   if (namespace) {
     let nsAnn;
     if (namespace.value.length === 0) {
       nsAnn = 'invalid: empty namespace (h\'\') -- use a negative typeId to inherit instead (§3.5)';
     } else {
-      nsAnn = 'namespace: ' + bytesToHex(namespace.value).replace(/ /g, '');
-    }
-    if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[regNsHex]) {
-      const entry = QDEF_REGISTRY[regNsHex];
-      nsAnn += ` (${entry.variable || entry.name})`;
+      const nsBstrHex = bytesToHex(namespace.value).replace(/ /g, '');
+      nsAnn = 'namespace (cascades to subrecords): ' + nsBstrHex;
+      if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[nsBstrHex]) {
+        const entry = QDEF_REGISTRY[nsBstrHex];
+        nsAnn += ` (${entry.variable || entry.name})`;
+      }
     }
     annotateItem(namespace, nsAnn);
   }
@@ -348,13 +339,13 @@ function annotateRecordStructure(arr, inheritedNamespace) {
     typeName = STANDARD_TYPE_NAMES[String(typeId[0])];
   }
 
-  // Annotate typeId
+  // Annotate typeId. A namespace bstr on this same Record never affects
+  // this: non-negative is always global, negative always adopts the
+  // ambient (received from a parent, not this Record's own bstr).
   if (typeIdExplicit && tidItem) {
     const tidStr = typeId.join(',');
     let scope;
-    if (namespaceIsEmptyBstr) scope = 'invalid namespace token';
-    else if (namespace) scope = 'scoped';
-    else if (typeIdNegative) scope = regNsHex ? `scoped, inherits [${regNsHex}]` : 'scoped, no ambient namespace';
+    if (typeIdNegative) scope = regNsHex ? `scoped, inherits [${regNsHex}]` : 'scoped, no ambient namespace';
     else scope = 'global';
     let typeAnn = `typeId=[${tidStr}] (${scope})`;
     if (typeName) typeAnn += ` - ${typeName}`;

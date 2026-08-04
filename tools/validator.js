@@ -234,20 +234,17 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace, strict) {
   // Remaining items: subrecords (arrays only, rest skipped silently)
   const subrecords = items.slice(idx).filter(i => i.type === 'array');
 
-  // Namespace resolution (§3.5). A Record's own scoping decision
-  // decides ONLY how its own typeId is interpreted -- no namespace bstr
-  // + non-negative typeId is unconditionally global for itself,
-  // regardless of ambient; no namespace bstr + negative typeId adopts
-  // the ambient namespace instead. An explicit non-empty bstr is this
-  // Record's own value. An empty bstr (h'') is no longer valid -- a
-  // negative typeId replaced it. What passes to subrecords is a
-  // separate question: an explicit namespace resets it, no bstr at all
-  // (either typeId sign) passes the received ambient straight through
-  // unchanged.
+  // Namespace resolution (§3.5). A namespace bstr's ONLY job is to set
+  // the ambient namespace for subrecords -- it never scopes the
+  // Record's own typeId. A Record's own scope is decided purely by its
+  // own typeId's sign, independent of whether a bstr sits on the same
+  // Record: non-negative is always global, regardless of ambient or any
+  // bstr present here; negative adopts the ambient namespace received
+  // from the immediate parent -- never this Record's own bstr, which
+  // only ever affects subrecords. An empty bstr (h'') is no longer a
+  // valid namespace token.
   const namespaceIsEmptyBstr = !!(namespace && namespace.value.length === 0);
-  const ownNamespace = (namespace && namespace.value.length > 0) ? namespace
-    : (namespaceIsEmptyBstr || typeIdNegative) ? (inheritedNamespace || null)
-    : null;
+  const ownNamespace = typeIdNegative ? (inheritedNamespace || null) : null;
   const namespaceForChildren = (namespace && namespace.value.length > 0)
     ? namespace
     : inheritedNamespace;
@@ -271,27 +268,31 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace, strict) {
     regNsName = QDEF_REGISTRY[regNsHex].variable || QDEF_REGISTRY[regNsHex].name;
   }
 
+  let reportedSomething = false;
   if (namespace) {
-    const nsHex = bytesToHex(namespace.value);
     if (namespace.value.length === 0) {
       issues.push({ level: 'error', text: `${recLabel}: empty namespace (h'') is no longer valid -- use a negative typeId to inherit instead (§3.5)` });
       annotateItem(namespace, `invalid: empty namespace (h'')`);
     } else {
-      recLabel += ` [namespace: ${nsHex}]`;
-      issues.push({ level: 'ok', text: `${recLabel}: namespace present` });
-      if (regNsName) {
-        issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}→ ${regNsName} (${QDEF_REGISTRY[regNsHex].name})` });
+      const nsHex = bytesToHex(namespace.value).replace(/ /g, '');
+      let nsName = null;
+      if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[nsHex]) {
+        nsName = QDEF_REGISTRY[nsHex].variable || QDEF_REGISTRY[nsHex].name;
       }
-      recordAnn = regNsName ? `${regNsName} ${recordAnn}` : `${regNsHex} ${recordAnn}`;
+      issues.push({ level: 'ok', text: `${recLabel}: carries namespace [${nsHex}]${nsName ? ' (' + nsName + ')' : ''} for subrecords -- cascade only, does not scope this Record's own typeId` });
     }
-  } else if (typeIdNegative) {
+    reportedSomething = true;
+  }
+  if (typeIdNegative) {
     if (inheritedNamespace) {
       issues.push({ level: 'ok', text: `${recLabel}: inherits namespace [${regNsHex}] (negative typeId)` });
       recordAnn = regNsName ? `${regNsName} ${recordAnn}` : `${regNsHex} ${recordAnn}`;
     } else {
       issues.push({ level: 'error', text: `${recLabel}: negative typeId inherits the ambient namespace, but none is in scope` });
     }
-  } else {
+    reportedSomething = true;
+  }
+  if (!reportedSomething) {
     issues.push({ level: 'ok', text: `${recLabel}` });
   }
 
@@ -315,11 +316,7 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace, strict) {
     }
     const firstTid = typeIdUints[0];
     let scopeLabel;
-    if (namespaceIsEmptyBstr) {
-      scopeLabel = 'invalid namespace token';
-    } else if (namespace) {
-      scopeLabel = 'namespace-scoped';
-    } else if (typeIdNegative) {
+    if (typeIdNegative) {
       scopeLabel = regNsHex ? `namespace-scoped (inherited [${regNsHex}])` : 'namespace-scoped (no ambient namespace)';
     } else if (typeIdUints.length === 1 && firstTid >= 1 && firstTid <= 22) {
       scopeLabel = 'standard (global)';
@@ -429,7 +426,7 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace, strict) {
       issues.push({ level: 'error', text: `${label}: Bundle MUST NOT carry a payload (key 0)` });
     }
   }
-  if (!namespace && typeIdUints.length === 1 && typeIdUints[0] >= 1 && typeIdUints[0] <= 22) {
+  if (typeIdUints.length === 1 && typeIdUints[0] >= 1 && typeIdUints[0] <= 22) {
     issues.push({ level: 'ok', text: `${'  '.repeat(depth+1)}→ Standard QDEF type [${typeIdUints[0]}] (global)` });
   }
 

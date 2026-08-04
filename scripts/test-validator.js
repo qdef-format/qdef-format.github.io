@@ -76,16 +76,20 @@ test('Random garbage CBOR',
   '51 44 45 46 de ad be ef ca fe ba be', false);
 
 // ── Annotation verification ──────────────────────────────────────────────
+// A namespace bstr only ever cascades to subrecords (§3.5) -- it never
+// scopes the Record carrying it, so the namespace lives on the outer
+// Bundle and the actual scoped type is the inner Record, whose negative
+// typeId adopts that ambient namespace.
 (function() {
-  const bytes = hexToBytes('51 44 45 46 81 83 44 89 d4 14 e0 01 a2 00 48 53 6f 6d 65 44 65 73 74 02 01');
+  const bytes = hexToBytes('51 44 45 46 82 44 89 d4 14 e0 82 20 a2 00 48 53 6f 6d 65 44 65 73 74 02 01');
   const r = validateQDEF(bytes);
   assert(r.root._ann && r.root._ann.includes('Bundle'), 'Root array annotated as Bundle');
-  const sub = r.root.value[0];
+  const nsBytes = r.root.value[0];
+  assert(nsBytes && nsBytes._ann && nsBytes._ann.includes('TagDrop'), 'Namespace bytes annotated');
+  const sub = r.root.value[1];
   assert(sub && sub._ann && sub._ann.includes('TagDrop'), 'Subrecord annotated with namespace name');
   assert(sub && sub._ann && sub._ann.includes('Content Extension'), 'Subrecord annotated with type name');
-  const nsBytes = sub.value[0];
-  assert(nsBytes && nsBytes._ann && nsBytes._ann.includes('TagDrop'), 'Namespace bytes annotated');
-  const tid = sub.value[1];
+  const tid = sub.value[0];
   assert(tid && tid._ann && tid._ann.includes('Content Extension'), 'TypeId annotated');
 })();
 
