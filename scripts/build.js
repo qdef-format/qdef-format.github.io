@@ -331,10 +331,10 @@ QDEF is a binary container format for multi-action 2D barcodes (QR, Data Matrix,
 ## Quick summary
 
 Record shape: [namespace?, ns_annotation?, typeId*, type_annotation?, map?, subrecord*]
-- namespace: optional bstr, h'' = inherit parent, absent = global
-- typeId: consecutive uints, [N] with N in 1-22 for standard types
-- map key 0 = payload, key 1 = descriptor, keys > 0 with even/odd criticality
-- Negative keys: -1 is Record ID; all others reserved
+- namespace: optional bstr, explicit value = scoped to it, absent = scope decided by typeId's sign
+- typeId: leading int may be negative (no namespace bstr present -> scoped, inherits ambient namespace) or non-negative (global); rest of the X.X.X hierarchy is uints; [N] with N in 1-22 (non-negative, no namespace) for standard types
+- map key 0 = payload, key 1 = descriptor, keys >= 2 and keys <= -2 with even/odd criticality
+- Negative keys: -1 is Record ID; keys <= -2 reserved for future common headers (Standards Action, parity-governed)
 - Standard types: [1]=Split, [2]=Encrypt, [3]=Media Payload, [4]=Compress, [5]=Open/Hint URI, [6]=App Route, [7]=Media Preview, [8]=Signature
 `;
 fs.writeFileSync(path.join(OUT, 'llms.txt'), llms);

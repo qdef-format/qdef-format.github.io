@@ -49,9 +49,9 @@
     hex: '00 01 02 03 81 01'
   },
   {
-    label: 'Namespace cascade (inherit marker)',
-    descriptor: 'A Bundle with namespace and ns annotation, subrecord uses h\'\' to inherit the namespace.',
+    label: 'Namespace cascade (negative typeId inherits)',
+    descriptor: 'A Bundle with namespace and ns annotation, subrecord uses a negative typeId (-1) to inherit the namespace (§3.5).',
     expectValid: true,
-    hex: '51 44 45 46 83 44 89 D4 14 E0 67 54 61 67 44 72 6F 70 84 40 01 65 52 6F 75 74 65 A2 00 44 64 65 73 74 02 01'
+    hex: '51 44 45 46 83 44 89 D4 14 E0 67 54 61 67 44 72 6F 70 83 20 65 52 6F 75 74 65 A2 00 44 64 65 73 74 02 01'
   }
 ];
