@@ -143,7 +143,9 @@ namespace?, ns_annotation?, typeId*, type_annotation?, map?, subrecord*
 - **map** (optional): the first non-bstr, non-uint, non-tstr item, if
   it is a CBOR **map** (major type 5), is the field Map. Key `0` is
   reserved for the payload. Key `-1` is the spec-reserved Record ID.
-  Positive keys carry application fields with even/odd criticality (§3.2).
+  Positive keys (≥ 2) carry application fields, and negative keys
+  (≤ -2) are reserved for future QDEF common headers, both with
+  even/odd criticality (§3.2).
 - **subrecord***: remaining items after the map.
 
 A text string in any other position (e.g. at position 0 with no
@@ -192,6 +194,7 @@ shared — namespace presence, not the typeId value, determines scope.
 | `0` | Payload | RESERVED — same meaning in every Record |
 | `1` | Payload descriptor | RESERVED — optional hint for what key 0 holds (MIME type, URI, label, etc.) |
 | `-1` | Record ID | Spec-reserved — NDEF-ID-equivalent correlation token (§3.6) |
+| `<= -2` | Future common headers | Standards Action only, never app-allocated — even/odd criticality (§3.2) reserved now so a future header is safe to add without breaking already-deployed decoders |
 | `>= 2` | Application fields | Per-Type numbering, with even/odd criticality (§3.2) |
 
 Key `0` carries the Record's payload when present. Key `1` is an
@@ -205,7 +208,10 @@ load-bearing" through the even/odd criticality rule (§3.2) rather than
 prose alone. Key `-1` as the Record ID occupies the negative space,
 which costs nothing to application types and leaves positive key `2`
 as the first (even, critical) application field by default — the right
-starting parity for data that must not be silently ignored.
+starting parity for data that must not be silently ignored. Keys `≤ -2`
+stay unallocated on purpose, but already carry a parity: whichever one
+the spec claims next for a future common header, that choice of even or
+odd is what tells an already-deployed decoder how to fail safely.
 
 Key 0 and 1 form a natural pair: the heavy data and its description.
 All standard types follow this convention, and application types are
@@ -250,20 +256,31 @@ cost zero net bytes (they occupy what would otherwise be padding).
 ### 3.2 The Extensibility Rule (Even/Odd Keys)
 
 Borrowed from PNG's critical/ancillary chunk convention. This rule
-applies to **positive map keys (≥ 2)** only — keys `0`, `1`, and all
-negative keys have fixed spec-reserved meanings and are not governed
-by per-Type even/odd.
+applies to **positive map keys (≥ 2)** and **negative map keys (≤ -2)**
+— keys `0`, `1`, and `-1` have fixed spec-reserved meanings and are not
+governed by per-Type even/odd.
 
-- **Even keys (> 0) are CRITICAL.** An unrecognized even-numbered key
-  MUST cause the parser to abort processing *that record* (not the whole
+- **Even keys are CRITICAL.** An unrecognized even-numbered key MUST
+  cause the parser to abort processing *that record* (not the whole
   container — sibling records sharing the same array are unaffected).
-- **Odd keys (> 0) are OPTIONAL.** An unrecognized odd-numbered key
-  MUST be silently ignored; the rest of the record still processes
-  normally.
+- **Odd keys are OPTIONAL.** An unrecognized odd-numbered key MUST be
+  silently ignored; the rest of the record still processes normally.
 
 This gives per-field forward compatibility: a future critical field
 doesn't require any version-bump mechanism, only choosing an even key
 number the current Record Type doesn't yet define.
+
+**Positive and negative keys differ in who allocates them, not in this
+rule.** Positive keys (≥ 2) are Type-scoped: each Record Type's own
+author numbers its own fields, and the same number means different
+things in different Types. Negative keys (≤ -2) stay Standards
+Action-governed — only the QDEF spec itself may allocate one, so a
+given negative key means the same thing on every Record Type, the same
+as `-1` already does today. Fixing the parity rule now, before any of
+`≤ -2` is assigned, means a future spec-defined common header can be
+introduced exactly the way a Type adds a new field: no version-bump
+mechanism, and decoders deployed before that key existed already have
+defined, safe fallback behavior for it.
 
 **A Record field's value MAY be any well-formed CBOR item** — a scalar,
 a string, or a nested array, map, or tag of any depth.
@@ -462,8 +479,9 @@ lookup.
 
 ### 3.6 Reserved Map Keys
 
-The field Map in every Record has three reserved key ranges, none of
-which is governed by per-Type even/odd criticality:
+The field Map in every Record has three keys with fixed, spec-reserved
+meanings — `0`, `1`, and `-1` — none of which is governed by per-Type
+even/odd criticality:
 
 **Key `0` — Payload (RESERVED).** The Record's content payload. A
 text string value is assumed plaintext; a byte string is opaque content
@@ -490,9 +508,22 @@ that only needs the raw bytes can ignore the tag; a generic scanner
 seeing tag 37 knows unambiguously that the value is a UUID without
 sniffing byte length.
 
-All other negative keys are reserved for future specification. Positive
-keys (`≥ 2`) are governed by that Record Type's own field numbering,
-with even/odd criticality (§3.2).
+**Keys `≤ -2` — future common headers (Standards Action, unallocated).**
+Unassigned today, but already governed by §3.2's even/odd rule: an
+unrecognized even negative key MUST abort that record, an unrecognized
+odd negative key MUST be silently ignored. This is allocation-reserved,
+not self-allocatable by an application — the same Type-independent
+recognition property `-1` already has depends on every negative key
+meaning the same thing on every Record Type, which only holds if the
+spec is the sole allocator. Fixing the parity rule ahead of allocation
+means the spec can add a header later exactly the way a Record Type
+adds a field: no version-bump mechanism, and decoders deployed before
+that key existed already have defined, safe behavior for it.
+
+**Key `≥ 2` — application fields.** Governed by that Record Type's own
+field numbering, with the same even/odd criticality rule (§3.2) — but
+Type-scoped, not spec-governed: the same number may carry a different
+meaning in a different Record Type.
 
 **CBOR's major-type distinction between non-negative (major 0) and
 negative (major 1) integers keeps the two key spaces disjoint.**
