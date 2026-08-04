@@ -150,7 +150,7 @@ change to Open/Hint URI's existing shape.
 
 If the Open/Hint URI Record and a richer sibling Record are always
 scanned together (same tap, same code or code group), share the QDEF
-common `ID` (key `-1`, §3's Common Headers) between them:
+common `ID` (key `-1`, §3.6's Record ID) between them:
 
 ```
 Type 5:  { 0: "https://example.com/order/9F2C", -1: "order-9f2c" }  // Open/Hint URI
@@ -243,9 +243,9 @@ specific app's naming choice ahead of time.
 - **Readable names, if wanted, are a per-URL choice, not a Record-wide
   one.** Rather than baking a name table into the Record itself (which
   would force one naming scheme on every consumer, and would need a new
-  spec-governed common header to stay collision-safe — §3 is explicit
-  that the negative-key space is "never self-allocatable by an
-  application"), an Open/Hint URI Record can carry its own optional
+  spec-governed common header to stay collision-safe — §3.6 is explicit
+  that keys `≤ -2` are "not self-allocatable by an application"), an
+  Open/Hint URI Record can carry its own optional
   mapping field, local to that one link: e.g. `9: {2: "date", 4:
   "batch"}` translates field `2` to `?date=...` and field `4` to
   `?batch=...` for *this* URL specifically. §4.2 already allows repeating
