@@ -14,6 +14,12 @@ function bytesToHex(bytes) {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
 }
 
+function formatUUID(bytes) {
+  if (!bytes || bytes.length !== 16) return null;
+  const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`;
+}
+
 // ── CBOR decoder ─────────────────────────────────────────────────────
 
 class CBORReader {
@@ -134,7 +140,6 @@ class CBORReader {
 
 const COMMON_FIELDS = {
   '-1':  { type: 'bstr or tstr', name: 'ID' },
-  '-3':  { type: 'bstr', name: 'UUID' },
 };
 
 // Generated from standard-types.rec at build time (assets/standard-types-data.js,
@@ -356,10 +361,21 @@ function annotateRecordStructure(arr, inheritedNamespace) {
           continue;
         }
 
-        // Negative = common header
-        if (keyVal < 0) {
+        // Key -1 = spec-reserved Record ID
+        if (keyVal === -1) {
           const common = COMMON_FIELDS[k];
-          annotateItem(pair.key, common ? `${common.name} (common)` : `common key ${k}`);
+          annotateItem(pair.key, common ? `${common.name} (spec-reserved)` : `spec-reserved key ${k}`);
+          if (pair.value && pair.value.type === 'tag' && pair.value.tag === 37 &&
+              pair.value.value && pair.value.value.type === 'bytes' &&
+              pair.value.value.value && pair.value.value.value.length === 16) {
+            annotateItem(pair.value, `UUID: ${formatUUID(pair.value.value.value)}`);
+          }
+          continue;
+        }
+
+        // Negative < -1 = reserved
+        if (keyVal < -1) {
+          annotateItem(pair.key, `reserved`);
           continue;
         }
 
@@ -481,6 +497,7 @@ function renderTreeText(item, indent) {
 global.CBOR_UTIL = {
   hexToBytes,
   bytesToHex,
+  formatUUID,
   CBORReader,
   COMMON_FIELDS,
   STANDARD_TYPE_NAMES,

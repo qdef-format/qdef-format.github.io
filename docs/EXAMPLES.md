@@ -129,17 +129,20 @@ Hex: `51 44 45 46 80`
 ```
 
 
-## UUID-only Bundle (tag identity)
+## Record with UUID-tagged ID
 
-A minimal payload with just a UUID on a Bundle — no content subrecords. Useful for inventory tracking or tag identity. (The spec allows it; which convention an app follows is an open design question.)
+A Record with key -1 carrying a CBOR tag 37 (UUID). The validator recognizes the tag and displays the UUID in standard format.
 
-Hex: `51 44 45 46 81 A1 22 50 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF`
+Hex: `51 44 45 46 81 82 18 64 A1 20 D8 25 50 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF`
 
 ```js
 [ 1 items // Bundle
-  { 1 keys
-    -3: h'0011223344556677...' // UUID (common)
-  }
+  [ 2 items // Record [100]
+    100 // typeId=[100] (global)
+    { 1 keys
+      -1: tag(37) UUID: 00112233-4455-6677-8899-aabbccddeeff // ID (spec-reserved)
+    }
+  ]
 ]
 ```
 

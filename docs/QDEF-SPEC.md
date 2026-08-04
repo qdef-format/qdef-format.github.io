@@ -142,9 +142,8 @@ namespace?, ns_annotation?, typeId*, type_annotation?, map?, subrecord*
   load-bearing. Present only if at least one uint precedes it.
 - **map** (optional): the first non-bstr, non-uint, non-tstr item, if
   it is a CBOR **map** (major type 5), is the field Map. Key `0` is
-  reserved for the payload. Negative keys `-1` and `-3` are QDEF common
-  headers (ID and UUID). Positive keys carry application fields with
-  even/odd criticality (§3.2).
+  reserved for the payload. Key `-1` is the spec-reserved Record ID.
+  Positive keys carry application fields with even/odd criticality (§3.2).
 - **subrecord***: remaining items after the map.
 
 A text string in any other position (e.g. at position 0 with no
@@ -175,7 +174,7 @@ Two axes, one rule each:
 | **namespace** absent | typeId is **global** — same meaning for every decoder |
 | **namespace** present (bstr, or empty `h''` inherit) | typeId is **scoped** to that namespace |
 | **typeId** absent | **Bundle** — structural only |
-| **typeId** present | Defines the Record's type, globally or scoped per namespace |
+| **typeId** present | Standard Record |
 
 Namespace presence is the sole scoping signal. A typeId `[2]` without a
 namespace is globally the Split wrapper (§4.1). The same `[2]` within
@@ -192,13 +191,21 @@ shared — namespace presence, not the typeId value, determines scope.
 |---|---|---|
 | `0` | Payload | RESERVED — same meaning in every Record |
 | `1` | Payload descriptor | RESERVED — optional hint for what key 0 holds (MIME type, URI, label, etc.) |
-| `< 0` | Common header keys | Spec-governed — only `-1` (ID) and `-3` (UUID) |
+| `-1` | Record ID | Spec-reserved — NDEF-ID-equivalent correlation token (§3.6) |
 | `>= 2` | Application fields | Per-Type numbering, with even/odd criticality (§3.2) |
 
 Key `0` carries the Record's payload when present. Key `1` is an
 optional hint describing the payload — never load-bearing for routing,
 a decoder MUST NOT rely on it for correctness. A Bundle (no typeId)
 MUST NOT have either key.
+
+**Why these numbers.** Key `0` encodes in 1 CBOR byte — the most-used
+key gets the cheapest encoding. Key `1` (odd) enforces "never
+load-bearing" through the even/odd criticality rule (§3.2) rather than
+prose alone. Key `-1` as the Record ID occupies the negative space,
+which costs nothing to application types and leaves positive key `2`
+as the first (even, critical) application field by default — the right
+starting parity for data that must not be silently ignored.
 
 Key 0 and 1 form a natural pair: the heavy data and its description.
 All standard types follow this convention, and application types are
@@ -243,9 +250,9 @@ cost zero net bytes (they occupy what would otherwise be padding).
 ### 3.2 The Extensibility Rule (Even/Odd Keys)
 
 Borrowed from PNG's critical/ancillary chunk convention. This rule
-applies to **positive map keys only** — key `0` is spec-reserved for
-payload and negative keys are spec-governed common headers (§3.6);
-neither is governed by per-Type even/odd.
+applies to **positive map keys (≥ 2)** only — keys `0`, `1`, and all
+negative keys have fixed spec-reserved meanings and are not governed
+by per-Type even/odd.
 
 - **Even keys (> 0) are CRITICAL.** An unrecognized even-numbered key
   MUST cause the parser to abort processing *that record* (not the whole
@@ -455,44 +462,40 @@ lookup.
 
 ### 3.6 Reserved Map Keys
 
-The field Map in every Record has two reserved key ranges, neither of
+The field Map in every Record has three reserved key ranges, none of
 which is governed by per-Type even/odd criticality:
 
 **Key `0` — Payload (RESERVED).** The Record's content payload. A
 text string value is assumed plaintext; a byte string is opaque content
 whose meaning is defined by the Record's own Type. Any other CBOR type
 is also valid. A Bundle (no typeId) MUST NOT carry key `0`, but it MAY
-carry a map with only metadata keys (e.g. `-3` for a container UUID):
+carry a map with a Record ID (§3.6.1):
 
 ```
-QDEF [{-3: h'<16B UUID>'}, [10, {0: "uri"}]]   // Bundle with UUID + subrecord
+QDEF [{-1: h'<id>'}, [10, {0: "uri"}]]   // Bundle with ID + subrecord
 ```
 
-**Negative keys — QDEF Common Headers (spec-governed).** These are
-few, spec-maintained only, and never self-allocatable by an
-application — an application-invented negative key would break the
-consistent, Type-independent recognition this tier exists for:
+**Key `1` — Payload descriptor (RESERVED).** An optional hint describing
+what key `0` holds — never load-bearing for routing, a decoder MUST NOT
+rely on it for correctness. A Bundle MUST NOT have key `1`.
 
-| Key | Name | Value shape |
-|---|---|---|
-| -1 | ID | `bstr` or `tstr` — an NDEF-ID-equivalent correlation token |
-| -3 | UUID | `bstr`, exactly 16 bytes — standard RFC 4122/9562 UUID |
+**Key `-1` — Record ID (spec-reserved).** Value shape: `bstr` or
+`tstr`. An NDEF-ID-equivalent correlation token for correlating Records
+*within* the same scan/tap — cheap, scoped, no uniqueness requirement.
+A Record MAY carry this key or not. Unlike annotation strings (§3.1), an
+ID is load-bearing (decoders use it for intra-container correlation),
+but it carries no semantics beyond identity. If the ID is a UUID, it
+MUST be wrapped in CBOR tag 37: `{-1: 37(h'<16 bytes>')}`. A decoder
+that only needs the raw bytes can ignore the tag; a generic scanner
+seeing tag 37 knows unambiguously that the value is a UUID without
+sniffing byte length.
 
-**ID vs. UUID: two different jobs, not two shapes of the same field.**
-ID is for correlating Records *within* the same scan/tap — cheap,
-scoped, no uniqueness requirement, the direct equivalent of NDEF's own
-`ID` field. UUID is a stronger, standardized identifier meant to survive
-outside the container entirely — tracking a specific piece of content
-across scans, sessions, or systems. A Record MAY carry either, both, or
-neither.
+All other negative keys are reserved for future specification. Positive
+keys (`≥ 2`) are governed by that Record Type's own field numbering,
+with even/odd criticality (§3.2).
 
-**A Type's own key `0` (payload) and the common `ID` key (`-1`) can
-never collide** — CBOR's major-type distinction between non-negative
-(major 0) and negative (major 1) integers keeps the two key spaces
-disjoint.
-
-All other keys are positive integers (`> 0`) governed by that Record
-Type's own field numbering, with even/odd criticality (§3.2).
+**CBOR's major-type distinction between non-negative (major 0) and
+negative (major 1) integers keeps the two key spaces disjoint.**
 
 ### Typical use of reserved keys
 
@@ -501,7 +504,6 @@ Type's own field numbering, with even/odd criticality (§3.2).
 | `0` | Primary content | Media Payload carries image bytes; Compress carries deflated stream; Open/Hint URI carries the URL; App Route carries the domain |
 | `1` | Content descriptor | Media Payload describes key 0's MIME type; Open/Hint URI gives the link text; App Route labels the routing target |
 | `-1` (ID) | Intra-container correlation | A Signature Record references its covered Records by ID; a Split fragment shares ID with other fragments in the group |
-| `-3` (UUID) | Cross-session identity | A Media Payload carries the same UUID across scans so a client can deduplicate content it already saw on a different QR code |
 
 An application type that carries a heavy binary blob and a short label
 should use key 0 for the blob and key 1 for the label — this is the
@@ -554,15 +556,18 @@ registry), but Standards Action governed: changes go through the spec
 itself, not a standalone registration PR. Bundle has no fixed field
 shape and so has no entry there.
 
-**Type ID allocation ranges.** Scope is determined by namespace
-presence, not the typeId value:
+**Type ID allocation ranges.** Boundaries follow CBOR's integer encoding
+sizes — the most broadly useful types get the cheapest encoding. These
+ranges apply to global typeIds only. Namespace-scoped typeIds are the
+namespace owner's responsibility — numbering within a namespace is
+local.
 
-| Range | Governance | Scope |
+| Range | CBOR bytes | Governance |
 |---|---|---|
-| 1–22 | Standards Action — QDEF standard types (§4) | global (by spec) |
-| 23–98 | Specification Required — reserved | global |
-| 100–32767 | Specification Required — reviewed app types | global (no ns) or scoped (with ns) |
-| 32768+ | First Come First Served — self-allocated | global (no ns) or scoped (with ns) |
+| 1–22 | 1 | Standards Action — QDEF infrastructure (wrappers, routing, signatures) |
+| 23–255 | 2 | Specification Required — well known record types (Wi-Fi, vCard, etc.) |
+| 256–65535 | 3 | Specification Required — community record types |
+| 65536+ | 5+ | First Come First Served — self-allocated, cross-app sharing |
 
 **Choosing a type ID form:**
 
@@ -574,7 +579,7 @@ presence, not the typeId value:
      YES -> declare a byte-string namespace (§3.5) and use any
             typeId within it — numbers are local to your namespace
 
-     NO  -> pick any number 100+ without a namespace (global)
+     NO  -> pick any number 24+ without a namespace (global)
 ```
 
 ### 4.1 Wrapper Records (optional)
@@ -904,14 +909,14 @@ here too).
 
 A **Bundle** is a structural Record — not a wrapper, not application
 data — for grouping related Records together as subrecords. It has no
-typeId (absent) and no payload (no key 0). It MAY carry a map with
-metadata keys (UUID, ID, etc.) for container-level identity. Its
-meaning is otherwise entirely in its subrecords:
+typeId (absent) and no payload (no key 0). It MAY carry a map with a Record ID
+(`-1`) for container-level identity. Its meaning is otherwise entirely
+in its subrecords:
 
 ```
 []                              // Empty Bundle (no map)
 [[100, {2: "SSID"}], [10, ...]] // Bundle with two subrecords
-[{-3: h'<16B>'}, [100, ...]]   // Bundle with container UUID
+[{-1: h'<id>'}, [100, ...]]    // Bundle with Record ID
 ```
 
 The container root is implicitly a Bundle whenever its array leads with

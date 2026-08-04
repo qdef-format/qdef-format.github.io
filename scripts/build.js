@@ -334,7 +334,7 @@ Record shape: [namespace?, ns_annotation?, typeId*, type_annotation?, map?, subr
 - namespace: optional bstr, h'' = inherit parent, absent = global
 - typeId: consecutive uints, [N] with N in 1-22 for standard types
 - map key 0 = payload, key 1 = descriptor, keys > 0 with even/odd criticality
-- Negative keys: -1 (ID), -3 (UUID) only
+- Negative keys: -1 is Record ID; all others reserved
 - Standard types: [1]=Split, [2]=Encrypt, [3]=Media Payload, [4]=Compress, [5]=Open/Hint URI, [6]=App Route, [7]=Media Preview, [8]=Signature
 `;
 fs.writeFileSync(path.join(OUT, 'llms.txt'), llms);

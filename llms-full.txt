@@ -25,7 +25,8 @@ A bare tstr anywhere else (no preceding bstr or uints) is malformed.
 |-----|---------|------------|
 | 0 | Payload | RESERVED — same meaning in every Record |
 | 1 | Payload descriptor | RESERVED — optional hint, never load-bearing |
-| < 0 | Common headers | Only -1 (ID) and -3 (UUID) |
+| -1 | Record ID | Spec-reserved — NDEF-ID-equivalent (bstr or tstr) |
+| < -1 | Reserved | Undefined, reserved for future specification |
 | >= 2 | Type-specific | Per-Type, even=critical, odd=optional |
 
 ## Standard types (global, no namespace, numbers 2-22)

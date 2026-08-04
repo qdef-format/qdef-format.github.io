@@ -36,10 +36,10 @@
     hex: '51 44 45 46 80'
   },
   {
-    label: 'UUID-only Bundle (tag identity)',
-    descriptor: 'A minimal payload with just a UUID on a Bundle — no content subrecords. Useful for inventory tracking or tag identity. (The spec allows it; which convention an app follows is an open design question.)',
+    label: 'Record with UUID-tagged ID',
+    descriptor: 'A Record with key -1 carrying a CBOR tag 37 (UUID). The validator recognizes the tag and displays the UUID in standard format.',
     expectValid: true,
-    hex: '51 44 45 46 81 A1 22 50 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF'
+    hex: '51 44 45 46 81 82 18 64 A1 20 D8 25 50 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF'
   },
   {
     label: 'Invalid: no magic header',

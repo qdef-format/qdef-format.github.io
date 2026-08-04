@@ -128,6 +128,7 @@ change — they're all just applications of §3.2's field-value-shape rule,
 §1's repeated-Records model, and §4.1/§4.3's existing standard record types, combined
 differently depending on what the data actually needs.
 
+
 ## Worked example: a fallback link that's also a parseable Record
 
 This pattern emerged from an open design discussion and isn't yet a
@@ -284,3 +285,101 @@ any decoder that doesn't care about it — so adopting it later costs
 nothing today. None of this is a proposal to change the spec; it's a
 record of how far the existing rules already stretch, and where the
 remaining gaps are if someone wants to standardize further.
+
+## URI Records that reference companion Record fields
+
+The Patterns above embed or correlate data *from* the URI record. A
+complementary need: an Open/Hint URI sitting alongside an application
+Record may want to open a URL *built from* the companion's field values
+— e.g. a Wi-Fi credential record's SSID and password passed as query
+parameters. QDEF leaves the mechanism to the application. Three
+approaches are worth considering:
+
+### Segmented array (no new syntax, still self-documenting)
+
+Key `0` carries a CBOR array interleaving literal strings with field
+references. An integer element means "substitute map key `N` from the
+companion Record":
+
+```
+[100, {-1: "wifi1", 2: "My Coffee Shop", 4: "guest123"}],
+[5, {0: ["https://example.com/connect?SSID=", 2, "&password=", 4],
+      2: "wifi1"}]
+```
+
+The reader walks the array at key `0`, concatenating strings verbatim
+and resolving integer elements against the companion record's map. An
+array `[id, key]` overrides the default companion for that one reference:
+
+```
+[5, {0: ["https://example.com/connect?SSID=", 2,
+         "&password=", ["wifi2", 4]],
+      2: "wifi1"}]
+```
+
+Here `2` resolves against `"wifi1"` (the default), while `["wifi2", 4]`
+pulls from a different Record. If every reference uses `[id, key]`
+explicitly, key `2` on the map can be omitted.
+
+### Template URI (invent-a-syntax)
+
+The URI carries `{N}` placeholder tokens that a reader substitutes at
+presentation time:
+
+```
+[100, {-1: "wifi1", 2: "My Coffee Shop", 4: "guest123"}],
+[5, {0: "https://example.com/connect?SSID={2}&password={4}",
+      2: "wifi1"}]
+```
+
+Borrows from string interpolation (Python f-strings, JavaScript template
+literals). More compact on the wire than the segmented array, but
+introduces a mini-syntax readers must agree on. The URI is fully
+readable as-is.
+
+### Mapping field (structured, no new syntax)
+
+The URI record carries a base URI and an explicit struct describing which
+companion fields to pull:
+
+```
+[100, {-1: "wifi1", 2: "My Coffee Shop", 4: "guest123"}],
+[5, {0: "https://example.com/connect",
+      2: "wifi1",
+      4: [{2: "SSID"}, {4: "password"}] }]
+```
+
+The reader looks up the companion by its `-1` ID, then walks the array at
+key 4 to build `?SSID=value&password=value`. No new syntax of any kind,
+but the URI alone (`https://example.com/connect`) tells a human nothing
+about what will fill it. Best when the substitution is entirely
+machine-driven.
+
+### Which to pick
+
+The segmented array is the strongest general answer: pure CBOR, no
+mini-syntax, still self-documenting. The template URI wins on compactness
+when wire bytes are tight. The mapping field is best when the substitution
+is opaque to a human reader. None needs a spec change.
+
+## UUID identity without a dedicated key
+
+A Record ID (`-1`) covers intra-container correlation with a short
+string. When a tag also needs a UUID for cross-system tracking (e.g.
+inventory moving between distributed scanners), wrap the content in a
+UUID Record instead of adding a second identity key to every record:
+
+```
+// Container root is a UUID Record wrapping a Bundle:
+37(h'<16 byte UUID>', [
+  [100, {-1: "ssid", 2: "My Coffee Shop", 4: "guest123"}],
+  [5, {0: "...", 2: "ssid"}]
+])
+```
+
+The outer UUID gives cross-system identity; the inner records correlate
+locally with short `-1` strings. Two concerns, two layers, no key-space
+conflict. A scanner that only needs the UUID reads the outer wrapping;
+one that only needs local correlation ignores it. No new spec machinery
+required — just a Record Type carrying a 16-byte payload at key `0`,
+optionally tagged with CBOR tag 37.

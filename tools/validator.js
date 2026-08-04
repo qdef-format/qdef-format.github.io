@@ -355,10 +355,22 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace, strict) {
           continue;
         }
 
-        // Negative keys = common headers (spec-reserved)
-        if (keyVal < 0) {
+        // Key -1 = spec-reserved Record ID
+        if (keyVal === -1) {
           const common = COMMON_FIELDS ? COMMON_FIELDS[k] : null;
-          pair.key._ann = common ? `${common.name} (common)` : `common key ${k}`;
+          pair.key._ann = common ? `${common.name} (spec-reserved)` : `spec-reserved key ${k}`;
+          if (pair.value && pair.value.type === 'tag' && pair.value.tag === 37 &&
+              pair.value.value && pair.value.value.type === 'bytes' &&
+              pair.value.value.value && pair.value.value.value.length === 16) {
+            const { formatUUID } = CBOR_UTIL;
+            pair.value._ann = `UUID: ${formatUUID(pair.value.value.value)}`;
+          }
+          continue;
+        }
+
+        // Negative < -1 = reserved
+        if (keyVal < -1) {
+          pair.key._ann = `reserved`;
           continue;
         }
 
