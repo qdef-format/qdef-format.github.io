@@ -487,7 +487,7 @@ even/odd criticality:
 text string value is assumed plaintext; a byte string is opaque content
 whose meaning is defined by the Record's own Type. Any other CBOR type
 is also valid. A Bundle (no typeId) MUST NOT carry key `0`, but it MAY
-carry a map with a Record ID (§3.6.1):
+carry a map with a Record ID (see "Key `-1`" below):
 
 ```
 QDEF [{-1: h'<id>'}, [10, {0: "uri"}]]   // Bundle with ID + subrecord
