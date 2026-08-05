@@ -22,6 +22,14 @@ Status: active
 %rec: RecordType
 %mandatory: NamespaceId ScopedTypeId
 %sort: NamespaceId ScopedTypeId
+#
+# ScopedTypeId is always given here as a positive magnitude -- it is
+# the type's identity, not its wire encoding. On the wire, a namespace
+# bstr only ever cascades to subrecords; it never scopes the Record
+# carrying it. To actually encode a Record as this scoped type, negate
+# ScopedTypeId in the typeId position (e.g. ScopedTypeId 1 -> wire
+# typeId -1), with the namespace declared on an ancestor Record for it
+# to inherit. See QDEF-SPEC.md §3.5.
 
 NamespaceId: h'89d414e0'
 ScopedTypeId: 1

@@ -452,6 +452,19 @@ typeId.** A non-negative typeId always means global, no matter what
 namespace bstr sits on the same Record or flows through as ambient —
 that's the only sign a decoder ever reads for scope.
 
+**Declared vs. wire-encoded typeId.** A namespace's own type numbering
+(e.g. a `registry.rec` `ScopedTypeId`, or any spec's own scheme) is
+always a positive magnitude — that's the type's identity, chosen once
+by the namespace owner and never signed. The sign is purely a
+wire-encoding decision made at encode time, not a property of the type
+itself: to actually encode a Record as that scoped type, negate the
+declared magnitude in the typeId position (`ScopedTypeId 1` → wire
+typeId `-1`), on a Record whose ambient namespace (from an ancestor)
+resolves to the namespace that number was registered under. The same
+magnitude appearing as a non-negative typeId elsewhere is a different,
+unrelated global type (§4's allocation-range table) — magnitude alone
+never implies scope either way.
+
 **Cascade.** Only an explicit `h'ns'` changes what subrecords receive as
 ambient; everything else (no bstr at all, on *any* Record — Bundle,
 standard type, or scoped app type) passes the ambient it received
