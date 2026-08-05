@@ -786,6 +786,23 @@ application needing ciphertext indistinguishable from random should
 keep its own encryption entirely inside an opaque registered blob (§5)
 instead.
 
+**Decompression-bomb guard (Compress, Type 4).** A Compress Wrapper's
+payload is untrusted input — nothing about DEFLATE stops an encoder
+(malicious or otherwise) from producing a small, pathologically
+repetitive stream that inflates to far more than its own size.
+DEFLATE has no recursive container structure (unlike nested ZIP
+archives, which can compound this across several unzip passes), so the
+amplification from a single inflate pass is bounded — but that bound is
+still large: roughly 1032:1 in the worst case. A decoder MUST NOT
+allocate an unbounded buffer for decompressed output. Implementations
+MUST enforce a hard ceiling on decompressed size, checked incrementally
+as output is produced (so a bomb is caught as soon as the ceiling is
+crossed, not only after decompression completes), and MUST treat
+exceeding it as a decode failure like any other malformed input, not a
+crash. The exact ceiling is application-defined — pick something
+generous relative to what your application actually transmits, but
+bounded regardless.
+
 **Fragment chunking (Split, Type 1).** The spec must fix *how* the original bytes
 are sliced, not just what fields describe the result, or two independent
 encoders/decoders can't agree on wire bytes. Fixed rule:
