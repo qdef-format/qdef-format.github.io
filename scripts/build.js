@@ -71,8 +71,8 @@ function fixDocLinks(html) {
     const frag = fragment ? `#${fragment}` : '';
     return `href="https://github.com/qdef-format/qdef-format.github.io/blob/main/docs/${filePart}${frag}"`;
   });
-  html = html.replace(/href="\.\.\/(prototype\/?)"/g, 'href="https://github.com/mofosyne/qdef/tree/main/prototype"');
-  html = html.replace(/href="\.\.\/rust\/qdef-core\/?"/g, 'href="https://github.com/mofosyne/qdef/tree/main/rust/qdef-core"');
+  html = html.replace(/href="\.\.\/(prototype\/?)"/g, 'href="https://github.com/qdef-format/qdef/tree/main/js"');
+  html = html.replace(/href="\.\.\/rust\/qdef-core\/?"/g, 'href="https://github.com/qdef-format/qdef/tree/main/rust/qdef-core"');
   return html;
 }
 
@@ -325,7 +325,7 @@ QDEF is a binary container format for multi-action 2D barcodes (QR, Data Matrix,
 - Related work: https://qdef-format.github.io/related-work.html
 - Full reference (single page): https://qdef-format.github.io/llms-full.txt
 - Validator tool: https://qdef-format.github.io/tools/validator.html
-- GitHub (prototype): https://github.com/mofosyne/qdef
+- GitHub (implementations): https://github.com/qdef-format/qdef
 - GitHub (website): https://github.com/qdef-format/qdef-format.github.io
 
 ## Quick summary

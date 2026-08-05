@@ -1,11 +1,13 @@
 # QDEF — Quick Data Exchange Format
 
-**Status: Draft — work in progress. The wire format is settled and
-validated by two prototypes — a Node round-trip prototype covering the
-full design (`/prototype`) and a `no_std`, zero-dependency Rust prototype
-of the mandatory core (`/rust/qdef-core`), which also builds for a bare-metal
-Cortex-M0 target; but there is no reference library and no production use
-yet. This document is normative.**
+**Status: Draft — work in progress. The wire format is settled and has
+reference implementations at
+[qdef-format/qdef](https://github.com/qdef-format/qdef): a JavaScript
+package (`qdef` on npm) covering the full design, including the standard
+record type library (§4), and a `no_std`, zero-dependency Rust crate
+(`qdef-core`) covering the mandatory core (§2/§3) for constrained embedded
+scanners, which also builds for a bare-metal Cortex-M0 target. No
+production use yet. This document is normative.**
 
 QDEF is a general-purpose binary container for multi-action 2D barcodes
 (QR, Data Matrix, Aztec) — "here are one or more typed records in one
