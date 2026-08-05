@@ -234,20 +234,20 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace, strict) {
   // Remaining items: subrecords (arrays only, rest skipped silently)
   const subrecords = items.slice(idx).filter(i => i.type === 'array');
 
-  // Namespace resolution (§3.5). A namespace bstr's ONLY job is to set
-  // the ambient namespace for subrecords -- it never scopes the
-  // Record's own typeId. A Record's own scope is decided purely by its
-  // own typeId's sign, independent of whether a bstr sits on the same
-  // Record: non-negative is always global, regardless of ambient or any
-  // bstr present here; negative adopts the ambient namespace received
-  // from the immediate parent -- never this Record's own bstr, which
-  // only ever affects subrecords. An empty bstr (h'') is no longer a
-  // valid namespace token.
+  // Namespace resolution (§3.5). A namespace bstr's job is always to set
+  // the ambient namespace for subrecords -- unconditional. Whether it
+  // ALSO scopes the Record carrying it depends purely on that Record's
+  // own typeId sign: non-negative is always global, regardless of any
+  // bstr present here or any ambient flowing through. Negative adopts
+  // this Record's own explicit bstr if it carries one (a Record MAY
+  // simultaneously introduce a namespace and be scoped by it -- no
+  // second Record needed), else the ambient namespace received from the
+  // immediate parent. An empty bstr (h'') is no longer a valid namespace
+  // token.
   const namespaceIsEmptyBstr = !!(namespace && namespace.value.length === 0);
-  const ownNamespace = typeIdNegative ? (inheritedNamespace || null) : null;
-  const namespaceForChildren = (namespace && namespace.value.length > 0)
-    ? namespace
-    : inheritedNamespace;
+  const explicitNamespace = (namespace && namespace.value.length > 0) ? namespace : null;
+  const ownNamespace = typeIdNegative ? (explicitNamespace || inheritedNamespace || null) : null;
+  const namespaceForChildren = explicitNamespace || inheritedNamespace;
   const regNsHex = ownNamespace ? bytesToHex(ownNamespace.value).replace(/ /g, '') : null;
 
   // Build description
@@ -279,16 +279,18 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace, strict) {
       if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[nsHex]) {
         nsName = QDEF_REGISTRY[nsHex].variable || QDEF_REGISTRY[nsHex].name;
       }
-      issues.push({ level: 'ok', text: `${recLabel}: carries namespace [${nsHex}]${nsName ? ' (' + nsName + ')' : ''} for subrecords -- cascade only, does not scope this Record's own typeId` });
+      const scopesSelf = typeIdNegative;
+      issues.push({ level: 'ok', text: `${recLabel}: carries namespace [${nsHex}]${nsName ? ' (' + nsName + ')' : ''} for subrecords${scopesSelf ? ', and scopes this Record itself (negative typeId)' : ' -- cascade only, does not scope this Record\'s own typeId (non-negative typeId)'}` });
+      if (scopesSelf) recordAnn = nsName ? `${nsName} ${recordAnn}` : `${nsHex} ${recordAnn}`;
     }
     reportedSomething = true;
   }
-  if (typeIdNegative) {
+  if (typeIdNegative && !explicitNamespace) {
     if (inheritedNamespace) {
       issues.push({ level: 'ok', text: `${recLabel}: inherits namespace [${regNsHex}] (negative typeId)` });
       recordAnn = regNsName ? `${regNsName} ${recordAnn}` : `${regNsHex} ${recordAnn}`;
     } else {
-      issues.push({ level: 'error', text: `${recLabel}: negative typeId inherits the ambient namespace, but none is in scope` });
+      issues.push({ level: 'error', text: `${recLabel}: negative typeId adopts its own namespace bstr or the ambient one, but neither is present/in scope` });
     }
     reportedSomething = true;
   }
@@ -317,7 +319,8 @@ function analyzeRecord(arr, issues, label, depth, inheritedNamespace, strict) {
     const firstTid = typeIdUints[0];
     let scopeLabel;
     if (typeIdNegative) {
-      scopeLabel = regNsHex ? `namespace-scoped (inherited [${regNsHex}])` : 'namespace-scoped (no ambient namespace)';
+      if (!regNsHex) scopeLabel = 'namespace-scoped (no ambient namespace)';
+      else scopeLabel = explicitNamespace ? `namespace-scoped (self-declared [${regNsHex}])` : `namespace-scoped (inherited [${regNsHex}])`;
     } else if (typeIdUints.length === 1 && firstTid >= 1 && firstTid <= 22) {
       scopeLabel = 'standard (global)';
     } else {
