@@ -32,6 +32,7 @@
   <style
      id="style1">
     :root { --fill: #000000; }
+    @media (prefers-color-scheme: dark) { :root { --fill: #ffffff; } }
     [data-theme=&quot;white&quot;] { --fill: #ffffff; }
     .fill { fill: var(--fill); }
     .fill-none { fill: none; }
