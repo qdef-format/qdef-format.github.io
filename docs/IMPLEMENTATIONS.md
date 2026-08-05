@@ -8,7 +8,7 @@ TagDrop uses QDEF as its byte-mode container for physical delivery codes. The pr
 
 ## Reference Implementations
 
-[`qdef-format/qdef`](https://github.com/qdef-format/qdef) hosts QDEF's reference implementations — meant to be depended on, not thrown away after proving the design works.
+[`qdef-format/qdef`](https://github.com/qdef-format/qdef) hosts QDEF's reference implementations.
 
 ### JavaScript (full design)
 
