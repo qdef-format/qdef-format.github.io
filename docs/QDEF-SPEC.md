@@ -82,15 +82,25 @@ end-of-buffer guesswork, no marker needed.
 | `0x51 0x44 0x45 0x46` ("QDEF") | One self-delimited CBOR array: `[namespace?, typeId*, map?, sub*]`. Anything after it is provably outside the container. |
 
 The root Record follows the same grammar as every other Record (§3):
-an optional byte-string **namespace** (empty string = inherit from
-parent), then zero or more consecutive uints forming the **typeId**
-sequence, then an optional CBOR **map** (key `0` reserved for payload),
-then **subrecords**:
+an optional byte-string **namespace** (cascades to subrecords only —
+never scopes this Record's own typeId, §3.5), then zero or more
+consecutive integers forming the **typeId** sequence (scope decided
+purely by its own sign), then an optional CBOR **map** (key `0`
+reserved for payload), then **subrecords**:
 
 ```
 QDEF [5, {0: "https://..."}]                 -- typeId [5] = Open/Hint URI (standard)
-QDEF [h'deadbeef', 1, {0: "data"}]         -- namespace + typeId [1], scoped
 QDEF [[5, {0: "..."}], [100, {2: "SSID"}]]   -- Bundle, two subrecords
+QDEF [h'deadbeef', [-100, {2: "child"}]]     -- Bundle w/ namespace,
+                                              --   subrecord's negative
+                                              --   typeId inherits it
+QDEF [h'deadbeef', 5, {0: "https://..."}]    -- namespace present, but
+                                              --   typeId [5] stays
+                                              --   global (Open/Hint URI)
+                                              --   -- the bstr only
+                                              --   cascades, unused here
+                                              --   since there are no
+                                              --   subrecords
 ```
 
 Both the root array and every subrecord's own array header (its CBOR
@@ -126,20 +136,26 @@ namespace?, ns_annotation?, typeId*, type_annotation?, map?, subrecord*
 ```
 
 - **namespace** (optional): a CBOR **byte string** (major type 2) at
-  position 0. Empty (`h''`) = inherit parent's namespace. Absent = no
-  scoping for following app typeIds.
+  position 0, non-empty. Its only effect is on **subrecords** — it
+  becomes the ambient namespace they inherit from. It never scopes
+  *this* Record's own typeId (§3.5); an empty byte string (`h''`) is
+  not a valid namespace token.
 - **ns_annotation** (optional): a **text string** (major type 3)
   immediately after a namespace — a human-readable label for the
   namespace, never load-bearing for routing. Present only if a
   namespace precedes it.
-- **typeId** (optional): zero or more consecutive CBOR **uints** (major
-  type 0). Global when no namespace is present; scoped to the namespace
-  otherwise. Low values `1`–`22` are reserved for standard QDEF types
-  (§4); all other values are available for application types. Absent
-  (no uints) = **Bundle**.
+- **typeId** (optional): zero or more consecutive CBOR integers forming
+  the X.X.X hierarchy. Scope is decided purely by the *first* element's
+  own sign, independent of whether a namespace bstr precedes it on this
+  same Record — a non-negative **uint** (major type 0) is global, a
+  **negative int** (major type 1) is scoped, adopting the ambient
+  namespace from an ancestor Record (§3.5) — and every element after the
+  first is a plain uint. Low non-negative values `1`–`22` are reserved
+  for standard QDEF types (§4); all other non-negative values are
+  available for application types. Absent (no integers) = **Bundle**.
 - **type_annotation** (optional): a **text string** immediately after
-  the last typeId uint — a human-readable label for the type, never
-  load-bearing. Present only if at least one uint precedes it.
+  the last typeId element — a human-readable label for the type, never
+  load-bearing. Present only if at least one typeId element precedes it.
 - **map** (optional): the first non-bstr, non-uint, non-tstr item, if
   it is a CBOR **map** (major type 5), is the field Map. Key `0` is
   reserved for the payload. Key `-1` is the spec-reserved Record ID.
@@ -160,32 +176,49 @@ using ordinary CBOR array-skipping, without Record-grammar knowledge.
 | Wire shape | Typical use |
 |---|---|
 | `[ [ ... ], ... ]` | Bundle (no ns, no typeId) |
-| `[h'ns', [ ... ], ...]` | Bundle with namespace |
-| `[N, { ... }]` | App type (no namespace), or standard type (§4) when N is 1–22 |
-| `[N, "name", { ... }]` | App type with type annotation |
-| `[h'ns', "name", N, { ... }]` | Namespace + ns annotation + type |
-| `[h'ns', N, "name", { ... }]` | Namespace + type + type annotation |
-| `[h'', N, { ... }]` | App type inheriting parent's ns |
+| `[h'ns', [ ... ], ...]` | Bundle with namespace, cascading to its subrecords |
+| `[N, { ... }]` | Global type — standard (§4) when N is 1–22, otherwise app-chosen |
+| `[N, "name", { ... }]` | Global type with type annotation |
+| `[h'ns', [-N, { ... }]]` | Bundle with namespace, whose subrecord's negative typeId adopts it |
+| `[-N, { ... }]` | App type inheriting an *already-ambient* namespace (negative typeId, no namespace bstr of its own) |
+
+A namespace bstr's only job is cascading to subrecords — it never
+scopes the typeId on the same Record that carries it. `[h'ns', N, {
+... }]` (an explicit namespace alongside a non-negative typeId) is
+legal, but `N` still reads as **global**; the namespace has no local
+effect, it only becomes ambient for any subrecords. To get a scoped
+type, the typeId itself has to be negative.
 
 ### TypeId + Namespace system
 
-Two axes, one rule each:
+TypeId scope is decided **purely by its own sign** — a namespace bstr
+on the same Record never affects it, present or not:
 
-| Axis | Rule |
+| Case | Rule |
 |---|---|
-| **namespace** absent | typeId is **global** — same meaning for every decoder |
-| **namespace** present (bstr, or empty `h''` inherit) | typeId is **scoped** to that namespace |
+| first typeId element **negative** | typeId is **scoped**, adopting the ambient namespace from an ancestor Record |
+| first typeId element **non-negative** | typeId is **global** — same meaning for every decoder, regardless of any namespace bstr on this same Record |
 | **typeId** absent | **Bundle** — structural only |
 | **typeId** present | Standard Record |
 
-Namespace presence is the sole scoping signal. A typeId `[2]` without a
-namespace is globally the Split wrapper (§4.1). The same `[2]` within
-a namespace `h'deadbeef'` is an app-chosen type, unrelated to Split.
+A typeId `[2]` is globally the Split wrapper (§4.1) whether or not a
+namespace bstr sits next to it on the same Record — the bstr only ever
+affects subrecords. `[-2]` (negative, with an ambient namespace
+`h'deadbeef'` in scope from some ancestor) is instead an app-chosen
+type local to that namespace, unrelated to Split. This makes a
+namespace bstr useful as a one-shot, container-wide declaration: the
+root Record of a whole QDEF payload can carry a namespace purely to
+identify which app/vendor the container belongs to — a "magic" for the
+payload as a whole — without that declaration ever accidentally
+reinterpreting a global type it happens to sit next to, and regardless
+of whether the root itself carries a typeId at all.
 
-Standard QDEF Record Types (§4) are global (no namespace) with reserved
-low typeId numbers 1–22. Application types are global when no namespace
-is declared, or scoped when one is. The X.X.X hierarchical space is
-shared — namespace presence, not the typeId value, determines scope.
+Standard QDEF Record Types (§4) are always global (non-negative typeId,
+no namespace) with reserved low typeId numbers 1–22. Application types
+are global when non-negative with no namespace, or scoped when either
+an explicit namespace is present or the first typeId element is
+negative. The X.X.X hierarchical space is shared — namespace presence
+together with typeId sign, not the typeId magnitude, determines scope.
 
 ### Map key conventions
 
@@ -233,9 +266,12 @@ Application types that don't follow this convention shift their fields
 to start at key 2, which also gets the first even/odd criticality
 signal.
 
-**Implementer caution:** a uint typeId element MUST be encoded as a
-native CBOR uint (major type 0), never wrapped in a bignum tag (CBOR
-tag `2`/`3`).
+**Implementer caution:** a typeId element MUST be encoded as a native
+CBOR integer — uint (major type 0) or, for the first element only,
+negative int (major type 1) — never wrapped in a bignum tag (CBOR tag
+`2`/`3`). Only the first element of a typeId sequence may be negative;
+every element after it is a plain uint regardless of the first
+element's sign.
 
 ### 3.1 Annotations
 
@@ -380,10 +416,11 @@ cheap, since Record Maps are small by construction.
 
 ### 3.5 Namespace Scoping
 
-A namespace is a byte string prefix on a Record. When present, the
-Record's typeId is scoped to that namespace — a different namespace (or
-no namespace) treats the same typeId as a different type. When absent,
-the typeId is global, interpreted the same by every decoder.
+A namespace is a byte string prefix on a Record. Its **only** effect is
+on subrecords — it becomes the ambient namespace they inherit. It never
+scopes the typeId on the same Record that carries it: that Record's own
+typeId is global or scoped purely by its own sign (§3.2), regardless of
+whether a namespace bstr sits right next to it.
 
 The namespace value is self-chosen by the application — typically a
 hash-derived value from a reverse-domain string, 4+ bytes long for
@@ -391,82 +428,104 @@ collision safety (SHA-256 prefix, self-certify at 4+ bytes). Two
 independent apps picking the same namespace collide every type within
 it.
 
-**Special values:**
-- **Empty byte string `h''`**: adopt the ambient namespace — whatever
-  the immediate parent passed down — as this Record's own scope.
-- **Absent (no bstr at position 0)**: this Record's own typeId is
-  global/standard-managed space, full stop, regardless of any ambient
-  namespace flowing through it.
+**Namespace token, two forms only** (an empty byte string `h''` is not
+a valid namespace token):
+- **Explicit `h'ns'`** (non-empty): becomes the ambient namespace for
+  this Record's subrecords. Has no effect on this Record's own typeId.
+- **Absent**: no new ambient is introduced; subrecords (if any) inherit
+  whatever ambient this Record itself received.
 
-**Best practice: every scoped Record carries its own namespace token —
-`h''` or a real value — never absent.** Absence always means global for
-*that Record's own typeId*, no matter what ambient namespace is present
-— this is the only way a Record that's meant to be scoped actually
-stays scoped.
+**A Record's own scope is decided purely by its own typeId's sign,
+full stop** — never by a namespace bstr on that same Record:
+- **Non-negative typeId** = global, unconditional. The same meaning to
+  every decoder, regardless of any namespace bstr present here or any
+  ambient namespace flowing through.
+- **Negative typeId** = scoped, adopting the ambient namespace received
+  from an ancestor Record. Never this Record's own bstr — a Record
+  cannot scope itself to a namespace it is simultaneously introducing;
+  getting both a fresh namespace declaration and a Record scoped to it
+  needs two Records: a namespace-carrying parent and a negative-typeId
+  child (the `[h'deadbeef', [-100, ...]]` shape below).
 
-**Cascade.** A Record's own namespace token decides only how *that
-Record's own typeId* is interpreted — it does not, by itself, decide
-what namespace continues on to its subrecords:
+**Best practice: a Record meant to be scoped always uses a negative
+typeId.** A non-negative typeId always means global, no matter what
+namespace bstr sits on the same Record or flows through as ambient —
+that's the only sign a decoder ever reads for scope.
 
-- **Own scope:** absent = global (unconditional, regardless of
-  ambient); `h''` = the ambient namespace received from the immediate
-  parent; an explicit `h'ns'` = that value.
-- **What passes to subrecords:** an explicit `h'ns'` becomes the new
-  ambient namespace for everything nested inside it. Anything else —
-  `h''`, or namespace absent entirely — passes the ambient namespace it
-  received straight through, unchanged, independent of how *this*
-  Record's own typeId got interpreted.
+**Declared vs. wire-encoded typeId.** A namespace's own type numbering
+(e.g. a `registry.rec` `ScopedTypeId`, or any spec's own scheme) is
+always a positive magnitude — that's the type's identity, chosen once
+by the namespace owner and never signed. The sign is purely a
+wire-encoding decision made at encode time, not a property of the type
+itself: to actually encode a Record as that scoped type, negate the
+declared magnitude in the typeId position (`ScopedTypeId 1` → wire
+typeId `-1`), on a Record whose ambient namespace (from an ancestor)
+resolves to the namespace that number was registered under. The same
+magnitude appearing as a non-negative typeId elsewhere is a different,
+unrelated global type (§4's allocation-range table) — magnitude alone
+never implies scope either way.
 
-This applies uniformly — a QDEF standard type (§4), a plain Bundle, and
-an application-defined type are all the same Record shape for this
-purpose. A standard type's own typeId is always global by construction
-(no namespace value changes what `Type 7` means), but that's a fact
-about *its own* interpretation only — it doesn't stop the ambient
-namespace from reaching whatever's nested inside it. Standard types
-aren't a structurally different kind of thing from application types
-here: per §4's allocation-range table, they're the same global typeId
-space under different governance tiers (Standards Action for `1`–`22`,
-Specification Required or First Come First Served above that), not two
-separate mechanisms.
+**Cascade.** Only an explicit `h'ns'` changes what subrecords receive as
+ambient; everything else (no bstr at all, on *any* Record — Bundle,
+standard type, or scoped app type) passes the ambient it received
+straight through unchanged. This is independent of, and never decided
+by, how that Record's own typeId got interpreted:
 
 ```
 QDEF [10, {0: "https://..."}]                    // Global (standard) type [10]
-QDEF [h'deadbeef', 1, {0: h'<payload>'}]         // Namespace-scoped type [1]
-QDEF [h'deadbeef', [100, {2: "child"}]]          // Bundle with namespace,
-                                                  //   subrecord inherits
-QDEF [h'deadbeef', [h'', 100, {2: "child"}]]    // Explicit inherit
-QDEF [h'deadbeef', [7, [h'', 200, {}]]]         // typeId [7] (Media
+QDEF [h'deadbeef', 1, {0: h'<payload>'}]         // typeId [1] stays global
+                                                  //   (Split!) -- deadbeef
+                                                  //   only cascades, has no
+                                                  //   local effect here
+QDEF [h'deadbeef', [100, {2: "child"}]]          // Subrecord's typeId is
+                                                  //   non-negative --
+                                                  //   GLOBAL type 100,
+                                                  //   deadbeef unused
+QDEF [h'deadbeef', [-100, {2: "child"}]]         // Negative typeId --
+                                                  //   correctly scoped,
+                                                  //   inherits deadbeef
+QDEF [h'deadbeef', [7, [-200, {}]]]             // typeId [7] (Media
                                                   //   Preview) is global
-                                                  //   for ITSELF, but
-                                                  //   still passes
-                                                  //   h'deadbeef' on to
-                                                  //   its own subrecord,
-                                                  //   whose h'' correctly
-                                                  //   resolves to it
+                                                  //   regardless; still
+                                                  //   passes deadbeef on
+                                                  //   to its own
+                                                  //   subrecord, whose
+                                                  //   negative typeId
+                                                  //   correctly resolves
+                                                  //   to it
 ```
 
-**Namespace must be transmitted, never merely implied.** "Absent" above
-is unconditional for a Record's own scope: a Record with no namespace
-bstr of its own is standard/global typeId space, full stop — there is
-no carrier-level exception where a namespace is inferred from context
-outside the QDEF bytes themselves (a URI scheme, a carrier-specific NDEF
-MIME type) rather than actually present on the wire somewhere in its
-ancestry. An application that wants any of its typeIds scoped MUST
-declare that namespace in-band — either explicitly on that Record, or
-via `h''`, or via an ancestor's explicit declaration reaching it through
-any number of intervening pass-through Records. A decoder has no way to
-reconstruct a namespace it was never given anywhere on the wire, and
-correctly reads a bare typeId as its standard/global meaning instead.
+A namespace bstr on the *root* Record of a whole QDEF payload is a
+useful pattern even when the root itself carries no typeId at all (a
+plain Bundle): a one-shot, container-wide declaration of which
+app/vendor the payload belongs to — a "magic" for the container as a
+whole — cascading to every subrecord underneath without needing to be
+repeated, and with no risk of it silently reinterpreting some unrelated
+global type it happens to sit beside.
+
+**Namespace must be transmitted, never merely implied.** A Record with
+no namespace bstr of its own has whatever ambient it received (or
+none) — there is no carrier-level exception where a namespace is
+inferred from context outside the QDEF bytes themselves (a URI scheme,
+a carrier-specific NDEF MIME type) rather than actually present on the
+wire somewhere in its ancestry. An application that wants any of its
+typeIds scoped MUST declare that namespace in-band, on an ancestor
+Record, reaching the scoped Record through any number of intervening
+pass-through Records. A decoder has no way to reconstruct a namespace
+it was never given anywhere on the wire, and correctly reads a bare
+non-negative typeId as its standard/global meaning instead.
 
 This costs little in practice: declare the namespace once, at the
 outermost Record that needs it, and every scoped descendant inherits it
-for 1 byte (`h''`) each — including through any number of standard-type
-or Bundle Records in between — rather than repeating the full value.
+for free — a negative typeId, no extra byte — including through any
+number of standard-type or Bundle Records in between, rather than
+repeating the full value.
 
-Standard QDEF Record Types (§4) use global (no-namespace) typeIds with
-reserved low numbers 1–22. An app could assign `[2]` inside its own
+Standard QDEF Record Types (§4) use global, non-negative typeIds with
+reserved low numbers 1–22. An app could assign `[-2]` scoped to its own
 namespace for a completely different purpose — no collision with Split,
-because the namespace is different.
+because the namespace is different and the sign already tells a decoder
+these are two unrelated readings.
 
 **Byte-length guidance:** self-allocate at 4 bytes or longer (birthday
 bound: ~9k namespaces before 1% collision risk at 4 bytes). Shorter is
@@ -607,8 +666,10 @@ local.
      YES -> use assigned number 1-22, no namespace
 
 2. Does your app need collision isolation from other apps?
-     YES -> declare a byte-string namespace (§3.5) and use any
-            typeId within it — numbers are local to your namespace
+     YES -> declare a byte-string namespace (§3.5) on an ancestor
+            Record, and use a negative typeId on the Record that's
+            actually typed — magnitude is local to your namespace,
+            chosen by you
 
      NO  -> pick any number 24+ without a namespace (global)
 ```

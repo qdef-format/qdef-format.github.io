@@ -36,15 +36,15 @@ Hex: `51 44 45 46 82 82 18 64 A3 02 6E 4D 79 20 43 6F 66 66 65 65 20 53 68 6F 70
 
 ## TagDrop Route (scoped)
 
-A scoped Record under namespace h'89d414e0' (TagDrop) with typeId [1], payload at key 0.
+A Bundle carrying namespace h'89d414e0' (TagDrop) for its subrecord (§3.5 -- a namespace bstr only ever cascades, never scopes its own Record), whose negative typeId [-1] adopts it, payload at key 0.
 
-Hex: `51 44 45 46 81 83 44 89 D4 14 E0 01 A2 00 48 53 6F 6D 65 44 65 73 74 02 01`
+Hex: `51 44 45 46 82 44 89 D4 14 E0 82 20 A2 00 48 53 6F 6D 65 44 65 73 74 02 01`
 
 ```js
-[ 1 items // Bundle
-  [ 3 items // TagDrop Record [1] — Content Extension
-    h'89d414e0' (4 B) // namespace: 89d414e0 (TagDrop)
-    1 // typeId=[1] (scoped) - Content Extension
+[ 2 items // Bundle
+  h'89d414e0' (4 B) // namespace (cascades to subrecords): 89d414e0 (TagDrop)
+  [ 2 items // TagDrop Record [-1] — Content Extension
+    -1 // typeId=[-1] (scoped, inherits [89d414e0]) - Content Extension
     { 2 keys
       0: h'536f6d6544657374' // payload
       2: 1 bstr // Group ID (even/critical)
@@ -83,15 +83,15 @@ Hex: `51 44 45 46 81 83 07 A3 02 6A 74 65 78 74 2F 70 6C 61 69 6E 03 48 12 9D A0
 
 ## TagDrop Content Extension
 
-A scoped Record (typeId [1]) under namespace h'89d414e0' with three extension fields.
+A Bundle carrying namespace h'89d414e0' (TagDrop) for its subrecord, whose negative typeId [-1] adopts it, with three extension fields.
 
-Hex: `51 44 45 46 81 83 44 89 D4 14 E0 01 A3 03 64 68 69 6E 74 0B 6B 64 65 73 63 72 69 70 74 69 6F 6E 0D 42 01 02`
+Hex: `51 44 45 46 82 44 89 D4 14 E0 82 20 A3 03 64 68 69 6E 74 0B 6B 64 65 73 63 72 69 70 74 69 6F 6E 0D 42 01 02`
 
 ```js
-[ 1 items // Bundle
-  [ 3 items // TagDrop Record [1] — Content Extension
-    h'89d414e0' (4 B) // namespace: 89d414e0 (TagDrop)
-    1 // typeId=[1] (scoped) - Content Extension
+[ 2 items // Bundle
+  h'89d414e0' (4 B) // namespace (cascades to subrecords): 89d414e0 (TagDrop)
+  [ 2 items // TagDrop Record [-1] — Content Extension
+    -1 // typeId=[-1] (scoped, inherits [89d414e0]) - Content Extension
     { 3 keys
       3: "hint" text // hint (odd/optional)
       11: "description" text // description (odd/optional)
@@ -159,25 +159,41 @@ Hex: `00 01 02 03 81 01`
 
 *Not a valid QDEF Bundle.*
 
-## Namespace cascade (inherit marker)
+## Namespace cascade (negative typeId inherits)
 
-A Bundle with namespace and ns annotation, subrecord uses h'' to inherit the namespace.
+A Bundle with namespace and ns annotation, subrecord uses a negative typeId (-1) to inherit the namespace (§3.5).
 
-Hex: `51 44 45 46 83 44 89 D4 14 E0 67 54 61 67 44 72 6F 70 84 40 01 65 52 6F 75 74 65 A2 00 44 64 65 73 74 02 01`
+Hex: `51 44 45 46 83 44 89 D4 14 E0 67 54 61 67 44 72 6F 70 83 20 65 52 6F 75 74 65 A2 00 44 64 65 73 74 02 01`
 
 ```js
 [ 3 items // Bundle
-  h'89d414e0' (4 B) // namespace: 89d414e0 (TagDrop)
+  h'89d414e0' (4 B) // namespace (cascades to subrecords): 89d414e0 (TagDrop)
   "TagDrop" // annotation: "TagDrop"
-  [ 4 items // TagDrop Record [1] — Content Extension
-    h'' // namespace: (inherited) 89d414e0 (TagDrop)
-    1 // typeId=[1] (scoped) - Content Extension
+  [ 3 items // TagDrop Record [-1] — Content Extension
+    -1 // typeId=[-1] (scoped, inherits [89d414e0]) - Content Extension
     "Route" // annotation: "Route"
     { 2 keys
       0: h'64657374' // payload
       2: 1 bstr // Group ID (even/critical)
     }
   ]
+]
+```
+
+
+## Namespace present but typeId stays global (inert)
+
+A namespace bstr only ever cascades to subrecords (§3.5) — it never scopes its own Record. This typeId [5] is a non-negative Open/Hint URI, so it reads as global regardless of the TagDrop namespace sitting right next to it; the namespace has no subrecords here to cascade to.
+
+Hex: `51 44 45 46 83 44 89 D4 14 E0 05 A1 00 78 18 68 74 74 70 73 3A 2F 2F 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 71 64 65 66`
+
+```js
+[ 3 items // Record [5] — Open/Hint URI
+  h'89d414e0' (4 B) // namespace (cascades to subrecords): 89d414e0 (TagDrop)
+  5 // typeId=[5] (global) - Open/Hint URI
+  { 1 keys
+    0: "https://example.com/qdef" // payload
+  }
 ]
 ```
 

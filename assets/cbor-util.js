@@ -166,6 +166,17 @@ function parseShape(shapeStr) {
   return Object.keys(fields).length > 0 ? fields : null;
 }
 
+// A typeId's first element may be negative (§3.5 -- scoped, inheriting
+// the ambient namespace, in place of an explicit namespace bstr). The
+// magnitude is the type's actual identity for registry/shape lookup;
+// the sign is a wire-encoding flag, not part of the number itself --
+// typeId -100 and typeId 100 (with an explicit repeated namespace)
+// name the same type.
+function absTypeId(v) {
+  if (typeof v === 'bigint') return v < 0n ? -v : v;
+  return Math.abs(v);
+}
+
 function getFieldDef(typeId, keyStr, nsHex) {
   if (COMMON_FIELDS[keyStr]) return COMMON_FIELDS[keyStr];
 
@@ -214,10 +225,21 @@ function analyzeRecord(arr) {
     }
   }
 
+  // typeId: an optional leading negative int (§3.5 -- scoped, adopting
+  // the ambient namespace, only meaningful with no namespace bstr
+  // above), followed by zero or more uints for the rest of the X.X.X
+  // hierarchy.
   const typeIdUints = [];
   let tidItem = null;
+  let typeIdNegative = false;
+  if (idx < items.length && items[idx].type === 'nint') {
+    tidItem = items[idx];
+    typeIdNegative = true;
+    typeIdUints.push(items[idx].value);
+    idx++;
+  }
   while (idx < items.length && items[idx].type === 'uint') {
-    if (typeIdUints.length === 0) tidItem = items[idx];
+    if (!tidItem) tidItem = items[idx];
     typeIdUints.push(items[idx].value);
     idx++;
   }
@@ -237,7 +259,7 @@ function analyzeRecord(arr) {
 
   const subrecords = items.slice(idx).filter(i => i.type === 'array');
 
-  return { namespace, nsAnnotation, typeId: typeIdUints, typeIdExplicit, tidItem, typeAnnotation, mapItem, subrecords };
+  return { namespace, nsAnnotation, typeId: typeIdUints, typeIdExplicit, typeIdNegative, tidItem, typeAnnotation, mapItem, subrecords };
 }
 
 // ── In-place Record annotation (shared between validator and docs) ─────
@@ -248,30 +270,25 @@ function annotateItem(item, text) {
 
 function annotateRecordStructure(arr, inheritedNamespace) {
   const ra = analyzeRecord(arr);
-  const { namespace, nsAnnotation, typeId, typeIdExplicit, tidItem, typeAnnotation, mapItem, subrecords } = ra;
+  const { namespace, nsAnnotation, typeId, typeIdExplicit, typeIdNegative, tidItem, typeAnnotation, mapItem, subrecords } = ra;
 
-  // Namespace resolution (§3.5). A Record's own namespace token decides
-  // ONLY how its own typeId is interpreted -- it does not, by itself,
-  // decide what namespace continues on to its subrecords. Two separate
-  // values:
+  // Namespace resolution (§3.5). A namespace bstr's ONLY job is to set
+  // the ambient namespace for subrecords -- it never scopes the
+  // Record's own typeId. A Record's own scope is decided purely by its
+  // own typeId's sign, independent of whether a bstr sits on the same
+  // Record:
   //
-  // - effectiveNamespace: THIS Record's own scope. Absent = global,
-  //   unconditional, regardless of ambient. Empty `h''` = the ambient
-  //   namespace received from the immediate parent. Non-empty bstr =
-  //   this Record's own explicit value.
+  // - effectiveNamespace: THIS Record's own scope. Non-negative typeId
+  //   = always global, unconditional, regardless of any bstr present
+  //   here or any ambient flowing through. Negative typeId = the
+  //   ambient namespace received from the immediate parent -- never
+  //   this Record's own bstr, which only ever affects subrecords.
   // - namespaceForChildren: what subrecords receive as their own
-  //   ambient. An explicit non-empty bstr resets it; `h''` or absent
-  //   both pass the received ambient straight through unchanged --
-  //   including through a standard type or Bundle whose OWN
-  //   interpretation stayed global.
-  let effectiveNamespace;
-  if (namespace && namespace.value.length === 0) {
-    effectiveNamespace = inheritedNamespace || null;
-  } else if (namespace) {
-    effectiveNamespace = namespace;
-  } else {
-    effectiveNamespace = null;
-  }
+  //   ambient. An explicit non-empty bstr resets it (regardless of this
+  //   Record's own typeId or scope); no bstr at all passes the received
+  //   ambient straight through unchanged.
+  const namespaceIsEmptyBstr = !!(namespace && namespace.value.length === 0);
+  const effectiveNamespace = typeIdNegative ? (inheritedNamespace || null) : null;
   const namespaceForChildren = (namespace && namespace.value.length > 0)
     ? namespace
     : (inheritedNamespace || null);
@@ -282,20 +299,22 @@ function annotateRecordStructure(arr, inheritedNamespace) {
 
   // A Bundle is defined purely by absent typeId (§4.6) — it MAY still
   // carry a namespace bstr of its own, e.g. to let its subrecords
-  // cascade from it via `h''` without transmitting the value per-child.
+  // cascade from it without transmitting the value per-child.
   const isBundle = typeId.length === 0;
 
-  // Annotate namespace
+  // Annotate namespace -- always a cascade-only declaration, whatever
+  // this Record's own typeId turns out to be.
   if (namespace) {
     let nsAnn;
     if (namespace.value.length === 0) {
-      nsAnn = 'namespace: (inherited)' + (regNsHex ? ' ' + regNsHex : ' none in scope');
+      nsAnn = 'invalid: empty namespace (h\'\') -- use a negative typeId to inherit instead (§3.5)';
     } else {
-      nsAnn = 'namespace: ' + bytesToHex(namespace.value).replace(/ /g, '');
-    }
-    if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[regNsHex]) {
-      const entry = QDEF_REGISTRY[regNsHex];
-      nsAnn += ` (${entry.variable || entry.name})`;
+      const nsBstrHex = bytesToHex(namespace.value).replace(/ /g, '');
+      nsAnn = 'namespace (cascades to subrecords): ' + nsBstrHex;
+      if (typeof QDEF_REGISTRY !== 'undefined' && QDEF_REGISTRY[nsBstrHex]) {
+        const entry = QDEF_REGISTRY[nsBstrHex];
+        nsAnn += ` (${entry.variable || entry.name})`;
+      }
     }
     annotateItem(namespace, nsAnn);
   }
@@ -303,24 +322,31 @@ function annotateRecordStructure(arr, inheritedNamespace) {
     annotateItem(nsAnnotation, `annotation: "${nsAnnotation.value}"`);
   }
 
-  // Resolve type name
+  // Resolve type name. Lookups key on the typeId's magnitude -- the
+  // sign is a wire-encoding flag for how scope was determined, not
+  // part of the type's identity (§3.5).
+  const typeIdKey = typeId.length > 0 ? absTypeId(typeId[0]) : null;
   let typeName = null;
   if (regNsHex && typeof QDEF_REGISTRY !== 'undefined') {
     const entry = QDEF_REGISTRY[regNsHex];
     if (entry && entry.types) {
-      if (typeId.length === 1 && entry.types[String(typeId[0])]) {
-        typeName = entry.types[String(typeId[0])].variable || entry.types[String(typeId[0])].name;
+      if (typeId.length === 1 && entry.types[String(typeIdKey)]) {
+        typeName = entry.types[String(typeIdKey)].variable || entry.types[String(typeIdKey)].name;
       }
     }
   }
-  if (!typeName && typeId.length === 1 && STANDARD_TYPE_NAMES[String(typeId[0])]) {
+  if (!typeName && typeId.length === 1 && !typeIdNegative && STANDARD_TYPE_NAMES[String(typeId[0])]) {
     typeName = STANDARD_TYPE_NAMES[String(typeId[0])];
   }
 
-  // Annotate typeId
+  // Annotate typeId. A namespace bstr on this same Record never affects
+  // this: non-negative is always global, negative always adopts the
+  // ambient (received from a parent, not this Record's own bstr).
   if (typeIdExplicit && tidItem) {
     const tidStr = typeId.join(',');
-    const scope = namespace ? 'scoped' : 'global';
+    let scope;
+    if (typeIdNegative) scope = regNsHex ? `scoped, inherits [${regNsHex}]` : 'scoped, no ambient namespace';
+    else scope = 'global';
     let typeAnn = `typeId=[${tidStr}] (${scope})`;
     if (typeName) typeAnn += ` - ${typeName}`;
     annotateItem(tidItem, typeAnn);
@@ -381,7 +407,7 @@ function annotateRecordStructure(arr, inheritedNamespace) {
 
         // Positive > 0: per-Type with even/odd
         const keyParity = keyVal % 2 === 0 ? 'even/critical' : 'odd/optional';
-        const tidForLookup = typeId.length > 0 ? typeId[0] : 0;
+        const tidForLookup = typeIdKey !== null ? typeIdKey : 0;
         const fd = getFieldDef(tidForLookup, k, regNsHex);
         if (fd) {
           annotateItem(pair.key, `${fd.name} (${keyParity})`);
@@ -505,6 +531,7 @@ global.CBOR_UTIL = {
   parseShape,
   getFieldDef,
   fieldName,
+  absTypeId,
   analyzeRecord,
   annotateItem,
   annotateRecordStructure,
