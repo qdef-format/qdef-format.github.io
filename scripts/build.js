@@ -314,7 +314,7 @@ require('./gen-examples');
 // LLM-friendly content index
 const llms = `# QDEF — Quick Data Exchange Format
 
-QDEF is a binary container format for multi-action 2D barcodes (QR, Data Matrix, Aztec) and NFC tags. It carries typed, self-describing records in a compact CBOR-based wire format.
+QDEF is a binary container format for multi-action 2D barcodes (QR, Data Matrix, Aztec). It carries typed, self-describing records in a compact CBOR-based wire format.
 
 ## Key pages
 

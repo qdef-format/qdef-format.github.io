@@ -2,7 +2,8 @@
 
 QDEF did not emerge from a vacuum. This page surveys the existing formats,
 standards, and proposals that occupy the same problem space — typed
-multi-record containers for constrained optical or NFC channels. The goal
+multi-record containers for constrained optical (2D barcode) channels,
+and the closest analog outside that space, NFC's own NDEF. The goal
 is to help readers situate QDEF against what came before and decide when
 it offers something genuinely new vs. when an existing tool is a better
 fit.
@@ -15,7 +16,7 @@ The closest analogs fall into four groups:
 |-------|---------|------------------|--------------|
 | **NFC containers** | NDEF | Multi-record, typed payloads, MIME integration | Per-field criticality (even/odd), byte-mode QR framing, no session concept |
 | **QR-specific containers** | BBQr, TagDrop | Magic header, single-scan payload, QR-targeted | Multi-type records within one scan, even/odd rule, CBOR Sequence wire format |
-| **General typed-record containers** | MCAP | Magic bytes + sequence of self-describing typed records | Optical/NFC constraint target, even/odd, no indexing or seeking |
+| **General typed-record containers** | MCAP | Magic bytes + sequence of self-describing typed records | Optical constraint target, even/odd, no indexing or seeking |
 | **Binary serialization** | CBOR, MessagePack, BSON | Compact binary encoding | Not a container — these are the *encoding* QDEF uses internally (CBOR), not alternative containers |
 | **Identifier/URI encodings** | GS1 Digital Link | URI/fallback-link concept, a growing need for compact structured data | Multi-record container, per-field criticality, binary (CBOR) from the wire up rather than a compression layer bolted onto text |
 
@@ -24,8 +25,10 @@ The closest analogs fall into four groups:
 NDEF is the incumbent standard for NFC tag payloads, defined by the NFC
 Forum. It organises data into one or more *records*, each with a 3-bit
 Type Name Format (TNF), a variable-length Type identifier, an optional
-ID field, and a payload. NDEF messages are the closest existing answer to
-QDEF's stated problem — for NFC.
+ID field, and a payload. QDEF is scoped to 2D barcodes only, not NFC, but
+NDEF is still the closest existing prior art for QDEF's actual problem —
+typed multi-record framing with no pre-existing dispatch signal — solved
+for a different channel.
 
 **What NDEF does well:**
 - Mature, widely deployed (billions of NFC tags)
@@ -43,14 +46,13 @@ QDEF's stated problem — for NFC.
 - **Binary format is NFC-tuned.** NDEF's type-length-value framing is
   optimised for the NFC digital protocol, not for byte-mode QR codes with
   strict space budgets.
-- **No MIME type registration for standalone use.** QDEF registered
-  `application/vnd.qdef` as a MIME type so it can be embedded inside
-  NDEF itself (§2 of the spec). NDEF has no equivalent self-reference.
 
-QDEF explicitly borrows from NDEF where it makes sense: the
-`application/vnd.qdef` MIME framing, multi-record structure, and the
-notion of well-known Record Types all trace back to NDEF. The novel
-contribution is the extension to byte-mode QR with per-field criticality.
+QDEF explicitly borrows from NDEF where it makes sense: multi-record
+structure and the notion of well-known Record Types both trace back to
+it. The novel contribution is the extension to byte-mode QR/2D barcodes
+with per-field criticality, and a magic-header/Type-ID dispatch
+mechanism of QDEF's own — QDEF is scoped to 2D barcodes only and does
+not define any NFC/NDEF carrier or MIME-type embedding itself.
 
 ## BBQr (Bitcoin Burst QR)
 
@@ -101,8 +103,8 @@ magic-byte header and a sequence of self-describing records.
   support adds overhead that is unacceptable on a 1 KB QR code.
 - **No even/odd criticality.** MCAP has no per-record-field optionality
   mechanism.
-- **No NFC or optical constraint.** MCAP assumes a filesystem or a stream,
-  not a scanned image.
+- **No optical constraint.** MCAP assumes a filesystem or a stream, not a
+  scanned image.
 
 The general pattern — magic header, then a sequence of typed records — is
 well-proven across domains. QDEF applies it to the constrained optical
@@ -228,7 +230,7 @@ rules already stretch.
 | Dimension | QDEF | NDEF | BBQr | MCAP | CBOR tags | GS1 Digital Link |
 |-----------|------|------|------|------|-----------|-------------------|
 | **Specification** | [spec](https://qdef-format.github.io/spec.html) | [NFC Forum](https://nfc-forum.org/) | [bbqr.org](https://bbqr.org/BBQr.html) | [mcap.dev](https://mcap.dev/spec) | [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949) | [GS1 Digital Link](https://www.gs1.org/standards/gs1-digital-link) / ISO/IEC 18975:2024 |
-| **Target channel** | QR, NFC | NFC only | QR only | File/stream | Encoding, not container | Any URL-capable scan |
+| **Target channel** | 2D barcode (QR, Data Matrix, Aztec) | NFC only | QR only | File/stream | Encoding, not container | Any URL-capable scan |
 | **Multi-record** | ✅ Yes | ✅ Yes | ❌ Single type per series | ✅ Yes | — | ❌ One identifier per URL |
 | **Per-field criticality** | ✅ Even/odd rule | ❌ No | ❌ No | ❌ No | — | ❌ No |
 | **Byte-mode encoding** | ✅ Yes | ✅ Yes | ❌ Alphanumeric | ✅ Yes | ✅ Yes | ❌ Text/URL native |
@@ -238,6 +240,6 @@ rules already stretch.
 | **Compression** | ✅ Yes (Type 4, DEFLATE) | ❌ No | ❌ No | ✅ Container-level | ❌ No | ⚠️ Optional (GS1 Application-Identifier-to-binary + base64url) |
 | **Reference library** | ❌ None | ✅ Platform SDKs | ✅ Reference implementations | ✅ C++/Python/TypeScript | ✅ Dozens across languages | ✅ GS1 Digital Link Toolkit + community libraries |
 | **Registry governance** | Proposed, not established | NFC Forum | Informal | Foxglove | IANA | GS1 (Application Identifier registry) |
-| **MIME type** | `application/vnd.qdef` (vendor) | ❌ No standalone | ❌ No | ❌ No | — | ❌ No (plain URL) |
+| **MIME type** | ❌ Not registered (2D-barcode-scoped, no transport needing one) | ❌ No standalone | ❌ No | ❌ No | — | ❌ No (plain URL) |
 | **Production use** | ⏳ None yet | ✅ Billions of tags | ✅ Bitcoin wallets | ✅ Robotics | ✅ Widespread | ✅ Massive retail/logistics deployment |
 | **Open standard** | Personal draft (CC0) | ✅ NFC Forum specification | ✅ Open source specification | ✅ Open source specification | ✅ IETF RFC | ✅ GS1 / ISO standard (not IETF) |

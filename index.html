@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>QDEF — Quick Data Exchange Format</title>
-  <meta name="description" content="QDEF is a general-purpose binary container for multi-action 2D barcodes (QR, Data Matrix, Aztec) and NFC tags.">
+  <meta name="description" content="QDEF is a general-purpose binary container for multi-action 2D barcodes (QR, Data Matrix, Aztec).">
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -29,8 +29,8 @@
       <p style="font-size:1rem;color:var(--text-muted);margin-bottom:0.5rem;font-family:'Courier New',monospace;letter-spacing:0.05em">Quick Data Exchange Format</p>
       <div class="magic">0x51 0x44 0x45 0x46 &rarr; "QDEF"</div>
       <p class="tagline">
-        A general-purpose binary container for multi-action 2D barcodes
-        and NFC tags — carry one or more typed records in a single scan or tap.
+        A general-purpose binary container for multi-action 2D barcodes —
+        carry one or more typed records in a single scan.
       </p>
     </section>
 
@@ -99,10 +99,9 @@
       <h2>Why QDEF</h2>
       <p>
         Existing text barcode schemes (<code>WIFI:S:...;;</code>, <code>BEGIN:VCARD</code>)
-        are rigid, single-purpose, and text-only. NDEF solves multi-record framing
-        but only for NFC. Nothing fills that role for a plain byte-mode QR, Data
-        Matrix, or Aztec code — or for an NFC payload with no application-specific
-        MIME type already routing it.
+        are rigid, single-purpose, and text-only. Nothing fills the multi-record
+        framing role for a plain byte-mode QR, Data Matrix, or Aztec code with
+        no application-specific dispatch signal already routing it.
       </p>
       <p><strong>QDEF is the missing container:</strong></p>
       <ul>

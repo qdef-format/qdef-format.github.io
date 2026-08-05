@@ -93,5 +93,21 @@ test('Random garbage CBOR',
   assert(tid && tid._ann && tid._ann.includes('Content Extension'), 'TypeId annotated');
 })();
 
+// A namespace bstr AND a negative typeId on the SAME Record (§3.5's
+// amended rule): the Record simultaneously introduces the namespace and
+// is scoped by it -- no Bundle wrapper needed. Same content as the
+// "TagDrop Route (scoped)" example above, minus the outer Bundle.
+(function() {
+  const bytes = hexToBytes('51 44 45 46 83 44 89 d4 14 e0 20 a2 00 48 53 6f 6d 65 44 65 73 74 02 01');
+  const r = validateQDEF(bytes);
+  assert(r.valid, 'Self-scoped root Record (namespace + negative typeId, no Bundle) is valid');
+  assert(r.root._ann && !r.root._ann.includes('Bundle'), 'Root array annotated as a Record, not a Bundle (it has a typeId)');
+  assert(r.root._ann && r.root._ann.includes('TagDrop'), 'Root Record annotated with its self-declared namespace name');
+  const nsBytes = r.root.value[0];
+  assert(nsBytes && nsBytes._ann && nsBytes._ann.includes('TagDrop'), 'Namespace bytes annotated');
+  const tid = r.root.value[1];
+  assert(tid && tid._ann && tid._ann.includes('self-declared'), 'TypeId annotated as self-declaring, not merely inheriting');
+})();
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
