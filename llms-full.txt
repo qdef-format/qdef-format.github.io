@@ -1,23 +1,23 @@
 # QDEF — Quick Data Exchange Format (full reference)
 
-QDEF is a binary container format for multi-action 2D barcodes (QR, Data Matrix, Aztec) and NFC tags. It carries typed, self-describing records in a compact CBOR-based wire format.
+QDEF is a binary container format for multi-action 2D barcodes (QR, Data Matrix, Aztec). It carries typed, self-describing records in a compact CBOR-based wire format.
 
 ## Wire format
 
-4-byte magic: `51 44 45 46` ("QDEF"), followed by root Record.
+4-byte magic: `51 44 45 46` ("QDEF"), followed by the root Record. An application carrying QDEF content under its own URI scheme (`myapp:...`) skips the magic — the scheme prefix already identifies the payload. Every other carrier always includes it.
 
 Record: `[namespace?, ns_annotation?, typeId*, type_annotation?, map?, subrecord*]`
 
 | Slot | CBOR type | Description |
 |------|-----------|-------------|
-| namespace | bstr (major 2) | Optional. h'' = inherit parent. Absent = global. |
+| namespace | bstr (major 2), non-empty | Optional. Cascades to subrecords only — never scopes this Record's own typeId. Empty bstr (h'') is not a valid token. |
 | ns_annotation | tstr (major 3) | Optional. Only after namespace. Human-readable label. |
-| typeId | uint(s) (major 0) | Optional consecutive uints. `[0,N]` removed; `[N]` in 2-22 = standard. |
-| type_annotation | tstr (major 3) | Optional. Only after typeId uints. Human-readable label. |
+| typeId | int(s), first may be negative (major 0 or 1) | Optional consecutive integers. Absent = Bundle. First element's sign decides scope (see Namespace below); every element after it is a plain uint. `1`-`22` = standard types. |
+| type_annotation | tstr (major 3) | Optional. Only after typeId. Human-readable label. |
 | map | map (major 5) | Optional field map. Key 0 = payload. |
 | subrecords | array(s) (major 4) | Remaining arrays, each a nested Record. |
 
-A bare tstr anywhere else (no preceding bstr or uints) is malformed.
+A bare tstr anywhere else (no preceding bstr or ints) is malformed.
 
 ## Map keys
 
@@ -25,11 +25,11 @@ A bare tstr anywhere else (no preceding bstr or uints) is malformed.
 |-----|---------|------------|
 | 0 | Payload | RESERVED — same meaning in every Record |
 | 1 | Payload descriptor | RESERVED — optional hint, never load-bearing |
-| -1 | Record ID | Spec-reserved — NDEF-ID-equivalent (bstr or tstr) |
-| < -1 | Reserved | Undefined, reserved for future specification |
+| -1 | Record ID | Spec-reserved — bstr or tstr correlation token; UUID MUST use CBOR tag 37 |
+| <= -2 | Future common headers | Standards Action only, not app-allocated — even/odd criticality pre-reserved |
 | >= 2 | Type-specific | Per-Type, even=critical, odd=optional |
 
-## Standard types (global, no namespace, numbers 2-22)
+## Standard types (global, no namespace, numbers 1-22)
 
 | TypeId | Name | Key 0 | Key 1 |
 |--------|------|-------|-------|
@@ -44,13 +44,18 @@ A bare tstr anywhere else (no preceding bstr or uints) is malformed.
 
 ## Namespace
 
-When namespace bstr is present, the typeId is scoped to that namespace — same number in a different namespace (or none) is a different type. Standard types (2-22) ignore namespace.
+A namespace bstr's job is always to become the ambient namespace for whatever's nested inside that Record — unconditional, regardless of that Record's own typeId. Whether it *also* scopes the Record carrying it is decided purely by that typeId's own sign:
 
-Namespace value is self-chosen via SHA-256 hash of a reverse-domain string, truncated to 4+ bytes. Empty bstr (h'') inherits parent's namespace.
+- **Non-negative typeId** = global, unconditionally. Same meaning to every decoder regardless of any namespace bstr present or any ambient flowing through.
+- **Negative typeId** = scoped. Adopts this Record's own namespace bstr if it carries one — a Record MAY simultaneously introduce a fresh namespace and be scoped by it, in one array, no second Record needed. Otherwise adopts the ambient namespace received from an ancestor Record.
+
+Namespace value is self-chosen via SHA-256 hash of a reverse-domain string, truncated to 4+ bytes. A namespace's own type numbering (e.g. a registry's ScopedTypeId) is always a positive declared magnitude; the wire-encoded sign is a separate, encode-time decision, not part of the type's identity — negate the magnitude to encode it scoped.
+
+Namespace must be transmitted in-band, never implied by carrier context — a Record with no namespace bstr anywhere in its ancestry is unconditionally global/standard typeId space.
 
 ## Bundle
 
-No typeId, no namespace, no map key 0. Structural grouping container. Subrecords carry the actual content.
+No typeId. MAY carry a namespace bstr (to cascade to subrecords) and/or a map with only a Record ID (key -1) — MUST NOT carry key 0 or key 1. Subrecords carry the actual content.
 
 ## Annotations
 
@@ -58,11 +63,11 @@ Optional text strings in two positions: after namespace (ns_annotation) and afte
 
 ## Criticality
 
-Only positive map keys (> 0) have even/odd criticality. Even = unrecognized key aborts that Record. Odd = unrecognized key silently ignored. Key 0 (payload), key 1 (descriptor), and all negative keys are spec-reserved and excluded.
+Positive keys >= 2 (Type-scoped) and negative keys <= -2 (Standards Action-governed) both have even/odd criticality. Even = unrecognized key aborts that Record. Odd = unrecognized key silently ignored. Keys 0 (payload), 1 (descriptor), and -1 (Record ID) are fixed, spec-reserved, and excluded from this rule.
 
 ## Canonical encoding
 
-Encoders MUST produce CBOR meeting RFC 8949 §4.2.1 core deterministic encoding: shortest-form integers, definite-length items only, map keys sorted by encoded bytes.
+Encoders MUST produce CBOR meeting RFC 8949 §4.2.1 core deterministic encoding: shortest-form integers, definite-length items only, map keys sorted by their own encoded bytes (shorter first, then bytewise — NOT plain integer value, since a negative key's encoded byte is always larger than a same-magnitude non-negative key's).
 
 ## Full spec
 

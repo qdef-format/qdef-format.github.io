@@ -1,8 +1,8 @@
 # QDEF — Quick Data Exchange Format
 
 QDEF is a general-purpose binary container for multi-action 2D barcodes
-(QR, Data Matrix, Aztec) and NFC tags — carry one or more typed records
-in a single scan or tap.
+(QR, Data Matrix, Aztec) — carry one or more typed records in a single
+scan.
 
 This repository hosts the [QDEF website](https://qdef-format.github.io/)
 and the canonical specification documents.
