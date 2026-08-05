@@ -10,7 +10,8 @@
     "qdef-validate": "scripts/qdef-validate.js"
   },
   "scripts": {
-    "test": "node scripts/test-validator.js",
+    "test": "node scripts/test-validator.js && node scripts/test-browser-globals.js",
+    "test:browser-globals": "node scripts/test-browser-globals.js",
     "build": "node scripts/build.js",
     "lint": "node scripts/lint-docs.js"
   },

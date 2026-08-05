@@ -147,8 +147,23 @@ const COMMON_FIELDS = {
 // loaders (scripts/load-validator.js, scripts/gen-examples.js) that eval
 // this file headlessly. Never hardcoded here: standard-types.rec is the
 // single source of truth for standard Record Type field shapes.
-const STANDARD_TYPE_NAMES = global.QDEF_STANDARD_TYPE_NAMES || {};
-const STANDARD_SHAPES = global.QDEF_STANDARD_SHAPES || {};
+//
+// A `typeof X !== 'undefined'` lexical check, not a `global.X` property
+// read -- same reason QDEF_REGISTRY is checked this way everywhere else
+// in this file. standard-types-data.js declares `const QDEF_STANDARD_*`
+// at a classic <script>'s top level, which creates a global *lexical*
+// binding, not a `window`/`globalThis` property -- `global.X` silently
+// evaluates to `undefined` for it in a real browser, even though the
+// binding is right there and `typeof X` sees it fine. This is why the
+// validator's field-key annotations resolved for namespaced/registry
+// Record Types (QDEF_REGISTRY, always checked via `typeof`) but not
+// standard/global ones (previously checked via `global.X`) -- caught by
+// hand-tracing the annotation path after a report that standard Types'
+// comments were silently missing; the Node headless path
+// (scripts/load-validator.js) never caught it because it assigns these
+// via a real `globalThis.X = ...` property, not a classic-script const.
+const STANDARD_TYPE_NAMES = typeof QDEF_STANDARD_TYPE_NAMES !== 'undefined' ? QDEF_STANDARD_TYPE_NAMES : {};
+const STANDARD_SHAPES = typeof QDEF_STANDARD_SHAPES !== 'undefined' ? QDEF_STANDARD_SHAPES : {};
 
 // ── Field name resolution ─────────────────────────────────────────────
 
