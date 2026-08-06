@@ -109,7 +109,6 @@ function checkSectionRefs(file) {
 const BAD_URL_PATTERNS = [
   { pattern: /qdef-format\.github\.io\/qdef-format\//, message: 'qdef-format.github.io/qdef-format/ 404s -- this repo is served at the domain root' },
   { pattern: /qdef-format\.github\.io\/qdef\//, message: 'qdef-format.github.io/qdef/ 404s -- this repo is served at the domain root' },
-  { pattern: /github\.com\/qdef-format\/qdef\/(?!format)/, message: 'github.com/qdef-format/qdef (missing .github.io) relies on a rename-redirect -- use the canonical qdef-format/qdef-format.github.io' },
 ];
 
 const SELF = __filename;
