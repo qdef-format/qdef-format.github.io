@@ -418,8 +418,8 @@ adopts CBOR's own, unchanged.
 This is a requirement on *encoders*, not decoders: a decoder MUST NOT
 reject an otherwise well-formed Record merely for being non-canonically
 encoded (key order never affects whether `map[N]` is findable). The rule
-exists so that anywhere QDEF hashes a Record's bytes for content-
-addressing (§4.1's `group_id` and any future Sign mechanism), two
+exists so that anywhere QDEF hashes a Record's bytes — §4.7's Signature
+recomputing its covered Records' bytes to verify a signature — two
 independent encoders handed identical field values compute the same
 hash — otherwise semantically-identical content could hash differently
 across encoders.
@@ -821,21 +821,33 @@ zero-padded to `chunkLen` before XOR). Splitting a group across
 different-capacity physical codes with different-sized fragments while
 still supporting parity recovery is not yet resolved.
 
-**`group_id` derivation (key `2`, CRITICAL).** `group_id =
-SHA-256(reassembled_payload)[0:8]` — the first 8 bytes of the SHA-256
-digest of the fully reassembled bytes (all data fragments `0` through
-`count − 1`, concatenated in order — recovered via parity first if one
-was missing). A fixed 8-byte width, not an implementer's choice: unlike
-§3.5's namespace derivation, where self-certification tolerates any
-width the declaring application picks, every independent encoder and
-decoder here must agree on the exact same byte string to correlate
-fragments and verify integrity at all, so there is no free parameter to
-choose. A decoder MUST recompute this hash after reassembly and reject a
-mismatch. This is a correlation-and-corruption check, not a security
-boundary — it catches accidental damage (a scan misread, a printing
-defect) cheaply; an application needing tamper resistance against a
-deliberate adversary uses Encrypt (§4.1) or Signature (§4.7) for that,
-not `group_id`.
+**`group_id` (key `2`, CRITICAL) is an opaque correlation token, not a
+content hash.** Its only job is confirming a set of scanned codes
+belongs to the same Split group — comparable to the parity byte in QR's
+own Structured Append mode (ISO/IEC 18004), which exists to catch a
+symbol from the wrong stack or a stale duplicate, not to detect damage:
+each physical symbol already carries its own Reed-Solomon error
+correction, so a scanned code either decodes cleanly or fails outright —
+there is no realistic "decoded successfully but silently wrong bytes"
+case for `group_id` to catch. A decoder treats two fragments as
+belonging to the same group exactly when their `group_id` bytes are
+equal; nothing is computed or verified beyond that comparison.
+
+RECOMMENDED: a fresh random value, 4 or more bytes (the same
+birthday-bound reasoning as §3.5's namespace guidance — collision
+between unrelated concurrent groups, not security, is what width buys
+here). Any encoder-chosen scheme producing a value shared identically
+across a group's fragments is valid; nothing about reassembly depends on
+how `group_id` was chosen, only that it matches.
+
+An application that wants to verify the reassembled payload's integrity
+beyond that — real tamper/corruption detection over the actual
+content — already has a mechanism for it: §4.5's Media Preview carries a
+proper multihash-style Content Hash (key `3`), nested as Split's
+subrecord per that section's fixed nesting rule. Computed once and
+carried on a single code, not duplicated per fragment the way `group_id`
+is. An application needing resistance against a deliberate adversary
+still wants Encrypt (§4.1) or Signature (§4.7), same as before.
 
 `parity_scheme` mechanics: **key `9`, OPTIONAL (odd)** — a decoder that
 doesn't understand it can simply ignore it, which is exactly what it
@@ -971,7 +983,7 @@ name-to-value consistency, never authorization — anyone can compute the
 same hash from the same name. Use this form only where getting it wrong
 costs *effort*, not *trust*: a fast, per-code pre-filter a scanner uses
 to reject an obviously-unrelated scan before attempting reassembly,
-layered ahead of §4.1's `group_id` integrity check, never as a
+layered ahead of §4.1's `group_id` correlation check, never as a
 replacement for it.
 
 Resolving a domain to a launch target is platform-specific:
@@ -1155,7 +1167,8 @@ framing.** Because CBOR items are self-delimiting and covered Records
 already sit contiguously in the array, this is a direct byte range on
 the wire, not a reconstruction: a decoder recomputes it by re-encoding
 each covered Record from its parsed form and concatenating the results,
-the same canonical-encoding reliance `group_id` (§4.1) already requires.
+relying on §3.4's canonical encoding to make that re-encoding
+byte-identical to the original.
 
 **A decoder that does recognize Type 8 MUST NOT let Algorithm broaden
 which algorithms it's willing to run** — the same allowlist discipline
@@ -1217,9 +1230,12 @@ instead — cheaper, and no Type ID to migrate later.
 
 **On signing:** an adopter whose own signature covers the
 fully-reassembled plaintext (after all splitting/addressing is
-resolved) needs no QDEF-level Sign mechanism — §4.1's `group_id` is
-already a content hash a decoder MUST verify after Split reassembly,
-which is all a whole-payload signature needs from the container.
+resolved) needs no QDEF-level Sign mechanism — their own signature
+verification already fails on a wrongly-reassembled payload, whatever
+caused it. §4.1's `group_id` still helps before that point (correlating
+which scanned codes to attempt reassembling together at all), but the
+actual correctness guarantee comes from the adopter's own signature, not
+from `group_id`.
 
 ## 6. Compression and splitting across multiple tags/codes
 
