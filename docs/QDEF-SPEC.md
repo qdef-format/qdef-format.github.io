@@ -821,6 +821,22 @@ zero-padded to `chunkLen` before XOR). Splitting a group across
 different-capacity physical codes with different-sized fragments while
 still supporting parity recovery is not yet resolved.
 
+**`group_id` derivation (key `2`, CRITICAL).** `group_id =
+SHA-256(reassembled_payload)[0:8]` — the first 8 bytes of the SHA-256
+digest of the fully reassembled bytes (all data fragments `0` through
+`count − 1`, concatenated in order — recovered via parity first if one
+was missing). A fixed 8-byte width, not an implementer's choice: unlike
+§3.5's namespace derivation, where self-certification tolerates any
+width the declaring application picks, every independent encoder and
+decoder here must agree on the exact same byte string to correlate
+fragments and verify integrity at all, so there is no free parameter to
+choose. A decoder MUST recompute this hash after reassembly and reject a
+mismatch. This is a correlation-and-corruption check, not a security
+boundary — it catches accidental damage (a scan misread, a printing
+defect) cheaply; an application needing tamper resistance against a
+deliberate adversary uses Encrypt (§4.1) or Signature (§4.7) for that,
+not `group_id`.
+
 `parity_scheme` mechanics: **key `9`, OPTIONAL (odd)** — a decoder that
 doesn't understand it can simply ignore it, which is exactly what it
 does: a parity fragment (index ≥ `count`, present only when key `9` is
