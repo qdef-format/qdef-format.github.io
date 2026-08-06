@@ -10,7 +10,7 @@ fit.
 
 ## Overview
 
-The closest analogs fall into four groups:
+The closest analogs fall into six groups:
 
 | Group | Formats | Shared with QDEF | QDEF's delta |
 |-------|---------|------------------|--------------|
@@ -19,6 +19,7 @@ The closest analogs fall into four groups:
 | **General typed-record containers** | MCAP | Magic bytes + sequence of self-describing typed records | Optical constraint target, even/odd, no indexing or seeking |
 | **Binary serialization** | CBOR, MessagePack, BSON | Compact binary encoding | Not a container — these are the *encoding* QDEF uses internally (CBOR), not alternative containers |
 | **Identifier/URI encodings** | GS1 Digital Link | URI/fallback-link concept, a growing need for compact structured data | Multi-record container, per-field criticality, binary (CBOR) from the wire up rather than a compression layer bolted onto text |
+| **Animated/streaming optical transfer** | Decimen | Same problem space (data over 2D barcode), magic-header framing | Not a container format at all (single-file transfer, not typed multi-record); static/printed target vs. live camera stream, no fountain coding — see the dedicated scope-boundary note below |
 
 ## NDEF (NFC Data Exchange Format)
 
@@ -160,13 +161,80 @@ mechanism.
 **Relationship to QDEF:**
 - Structured Append operates below QDEF's layer — it splits the raw byte
   stream, not the logical Records. QDEF Records live inside each symbol.
-- QDEF's own Split Record Type (§4.5) is an *alternative* to Structured
+- QDEF's own Split Record Type (§4.1) is an *alternative* to Structured
   Append: it splits at the Record level rather than the byte stream level,
   letting a decoder extract and act on early Records (e.g. an App Route
   URI) before the full split group arrives.
 - An application can use both: Structured Append for physical symbol
   splitting across multiple QR codes, and QDEF Split within each symbol
   for logical splitting within a group of Records.
+
+**A real design decision traced back to this comparison.** Split's
+`group_id` field was originally specified as a content hash a decoder
+"MUST verify" after reassembly. Checking that claim against Structured
+Append's own parity byte surfaced the actual reasoning: Structured
+Append's parity exists to confirm a symbol belongs to the right set, not
+to detect damage — because each QR/Data Matrix/Aztec symbol already
+carries its own Reed-Solomon error correction, so a scanned code decodes
+cleanly or fails outright, with no realistic "decoded fine but silently
+wrong bytes" case for a group-level field to catch. `group_id` was
+reframed to match: an opaque, RECOMMENDED-random correlation token, the
+same job as Structured Append's parity byte. A new field, `payload_hash`
+(§4.1, key `11`), was added separately for applications that want real
+reassembly-integrity verification — the job the old `group_id` wording
+implied it was doing but structurally couldn't guarantee.
+
+## Decimen Optical Transfer
+
+[Decimen](https://github.com/bashalarmistalt/decimen-optical-transfer)
+sends a file between two devices as an endless stream of animated QR
+codes, decoded live off a camera — no network, no pairing, screen to
+lens. It isn't a container format competing with QDEF; it's a
+same-problem-space *application* (data over 2D barcode) worth checking
+QDEF's design decisions against, since it's independently arrived at,
+genuinely battle-tested (reports 128 KB/s phone-to-phone), and solves a
+harder version of the reassembly problem QDEF's own Split faces.
+
+**What Decimen does well:**
+- LT (Luby transform) fountain coding: the sender loops an open-ended
+  pseudorandom stream of encoded frames; the receiver reconstructs from
+  *any* ~K·1.15 distinct frames, in any order. A dropped frame costs
+  time, never correctness — the right model for a live camera with a
+  high, unpredictable drop rate.
+- A two-tier hash design: a cheap FNV-1a hash folded into per-frame
+  stream identity (fast session/resume matching, not cryptographic), and
+  a separate SHA-256 verified over the fully reassembled file before
+  it's ever offered to the user.
+- A decompression-bomb guard on its own optional gzip step, checking
+  inflated size incrementally against a declared-but-untrusted trailer
+  length instead of trusting it.
+- Defensive filename handling: received filenames are reduced to a bare
+  sanitized basename before any local use, because a name arriving over
+  an unauthenticated optical channel is exactly as trustworthy as
+  anything else on it.
+
+**Where QDEF diverges, deliberately:**
+- **Target physical situation.** Decimen streams to an unbounded number
+  of animated frames over an unreliable live camera feed. QDEF's Split
+  targets a finite, printed, static set of codes — see §4.1's own
+  scope-boundary note on why fountain coding isn't a fit for that case
+  (a shared, bit-identical pseudorandom degree distribution is a large
+  commitment for a spec meant to be implemented independently across
+  languages; Decimen's own build hit a real cross-JS-engine desync from
+  a 1-ulp `Math.log` difference between V8 and JavaScriptCore).
+- **Not a typed multi-record container.** Decimen carries one file (name,
+  media type, bytes) per transfer session. QDEF carries multiple
+  heterogeneous typed Records in a single scan.
+
+**What this comparison actually changed in QDEF:** independent
+confirmation that `payload_hash`'s two-tier design (cheap correlation,
+separate strong integrity check) is the right shape — Decimen reached
+the identical split on its own. It also surfaced a real, previously
+unstated gap: §4.5's Media Preview Filename field had no guidance
+against exactly the path-traversal/control-character hazard Decimen's
+own `safeFileName()` exists to close. Fixed with a MUST-sanitize note in
+§4.5, directly modeled on Decimen's own defensive comment about why the
+receiver "has no reason to take the sender's word for it."
 
 ## GS1 Digital Link
 
@@ -236,10 +304,10 @@ rules already stretch.
 | **Byte-mode encoding** | ✅ Yes | ✅ Yes | ❌ Alphanumeric | ✅ Yes | ✅ Yes | ❌ Text/URL native |
 | **Magic header** | `QDEF` (4 B) | Implicit (NFC protocol) | `BBQr` (4 B) | `MCAP` (4 B) | None | None (`https://` + resolver domain) |
 | **Wire format** | CBOR Sequence | Custom TLV | Custom | Custom + protobuf | CBOR item | URI (GS1 Application Identifier element string or Digital Link path/query) |
-| **Splitting** | ⚠️ Specified, not yet implemented | ❌ No | ✅ Series-level | ✅ Chunk-level | ❌ No | ❌ No |
+| **Splitting** | ✅ Implemented (JS: chunking + XOR parity + payload_hash integrity check) | ❌ No | ✅ Series-level | ✅ Chunk-level | ❌ No | ❌ No |
 | **Compression** | ✅ Yes (Type 4, DEFLATE) | ❌ No | ❌ No | ✅ Container-level | ❌ No | ⚠️ Optional (GS1 Application-Identifier-to-binary + base64url) |
-| **Reference library** | ❌ None | ✅ Platform SDKs | ✅ Reference implementations | ✅ C++/Python/TypeScript | ✅ Dozens across languages | ✅ GS1 Digital Link Toolkit + community libraries |
+| **Reference library** | ✅ [qdef-format/qdef](https://github.com/qdef-format/qdef) — JS (full spec) + Rust (`no_std` mandatory core) | ✅ Platform SDKs | ✅ Reference implementations | ✅ C++/Python/TypeScript | ✅ Dozens across languages | ✅ GS1 Digital Link Toolkit + community libraries |
 | **Registry governance** | Proposed, not established | NFC Forum | Informal | Foxglove | IANA | GS1 (Application Identifier registry) |
 | **MIME type** | ❌ Not registered (2D-barcode-scoped, no transport needing one) | ❌ No standalone | ❌ No | ❌ No | — | ❌ No (plain URL) |
-| **Production use** | ⏳ None yet | ✅ Billions of tags | ✅ Bitcoin wallets | ✅ Robotics | ✅ Widespread | ✅ Massive retail/logistics deployment |
+| **Production use** | ⏳ Early adopter ([TagDrop](https://github.com/mofosyne/tagdrop)) | ✅ Billions of tags | ✅ Bitcoin wallets | ✅ Robotics | ✅ Widespread | ✅ Massive retail/logistics deployment |
 | **Open standard** | Personal draft (CC0) | ✅ NFC Forum specification | ✅ Open source specification | ✅ Open source specification | ✅ IETF RFC | ✅ GS1 / ISO standard (not IETF) |
