@@ -840,14 +840,26 @@ here). Any encoder-chosen scheme producing a value shared identically
 across a group's fragments is valid; nothing about reassembly depends on
 how `group_id` was chosen, only that it matches.
 
-An application that wants to verify the reassembled payload's integrity
-beyond that — real tamper/corruption detection over the actual
-content — already has a mechanism for it: §4.5's Media Preview carries a
-proper multihash-style Content Hash (key `3`), nested as Split's
-subrecord per that section's fixed nesting rule. Computed once and
-carried on a single code, not duplicated per fragment the way `group_id`
-is. An application needing resistance against a deliberate adversary
-still wants Encrypt (§4.1) or Signature (§4.7), same as before.
+**`payload_hash` (key `11`, OPTIONAL/odd)** is what an application
+reaches for if it wants real tamper/corruption detection over the
+reassembled bytes — Split wraps arbitrary Records (§7's key-backup
+example has no media content in it at all), so this can't be delegated
+to §4.5's Media Preview, which only applies when there's actual media
+content to identify. Same multihash encoding as Media Preview's Content
+Hash (a 1-byte multicodec hash-function code, e.g. `0x12` = sha2-256,
+followed by the digest, truncated or full) — reused rather than
+inventing a second hash format. A decoder that doesn't recognize key
+`11` still reassembles correctly; it just skips the extra check, the
+same fallback every odd/optional key gets. Present on exactly one
+fragment — the one carrying `4: 0` — never duplicated across the group:
+it only ever needs checking once, after reassembly completes, so paying
+its cost on every fragment would buy nothing (the same lesson §4.4's
+App Route repetition-cost note already draws for its own single-code
+fields). An application needing resistance against a deliberate
+adversary still wants Encrypt (§4.1) or Signature (§4.7), same as
+before — `payload_hash` catches accidental damage a signature would
+also catch, cheaper, when a full signature is more than the application
+needs.
 
 `parity_scheme` mechanics: **key `9`, OPTIONAL (odd)** — a decoder that
 doesn't understand it can simply ignore it, which is exactly what it

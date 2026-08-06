@@ -22,7 +22,7 @@ TypeId: 1
 RecordTypeName: Split
 Section: 4.1
 Governance: standards-action
-DataItem: map { 0: bstr (Fragment Bytes), 2: bstr (Group ID), 4: uint (Fragment Index), 6: uint (Fragment Count), 7: uint (Total Bytes, opt), 9: uint (Parity Scheme, opt) }
+DataItem: map { 0: bstr (Fragment Bytes), 2: bstr (Group ID), 4: uint (Fragment Index), 6: uint (Fragment Count), 7: uint (Total Bytes, opt), 9: uint (Parity Scheme, opt), 11: bstr (Payload Hash, opt, multihash, fragment 0 only) }
 Semantics: Fragment reassembly across a multi-code group, with optional XOR parity recovery.
 Reference: docs/QDEF-SPEC.md#41-wrapper-records-optional
 
