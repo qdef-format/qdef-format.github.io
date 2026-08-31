@@ -82,10 +82,10 @@ if (fs.existsSync(OUT)) {
 
 const docsDir = path.join(ROOT, 'docs');
 const map = {
-  'QDEF-SPEC.md': { out: 'spec.html', title: 'Specification', desc: 'QDEF wire format specification.', banner: true },
-  'EXAMPLES.md': { out: 'examples.html', title: 'Examples', desc: 'QDEF Record Type examples.', banner: false },
-  'IMPLEMENTATIONS.md': { out: 'implementations.html', title: 'Implementations', desc: 'Projects and applications using QDEF.', banner: false },
-  'RELATED-WORK.md': { out: 'related-work.html', title: 'Related Work', desc: 'Survey of related formats and standards in the typed-record container space.', banner: false }
+  'QDEF-SPEC.md': { out: 'spec.html', title: 'Specification', desc: 'QDEF wire format specification.' },
+  'EXAMPLES.md': { out: 'examples.html', title: 'Examples', desc: 'QDEF Record Type examples.' },
+  'IMPLEMENTATIONS.md': { out: 'implementations.html', title: 'Implementations', desc: 'Projects and applications using QDEF.' },
+  'RELATED-WORK.md': { out: 'related-work.html', title: 'Related Work', desc: 'Survey of related formats and standards in the typed-record container space.' }
 };
 
 const shell = fs.readFileSync(path.join(ROOT, 'templates', 'shell.html'), 'utf-8');
@@ -115,11 +115,6 @@ Object.entries(map).forEach(([file, cfg]) => {
     .replace('__DESCRIPTION__', cfg.desc)
     .replace('__OGURL__', ogUrl)
     .replace('__CONTENT__', body);
-
-  if (cfg.banner) {
-    const banner = '<div class="spec-status"><strong>Status: Draft — work in progress.</strong> The wire format is settled and validated by two prototypes, but there is no reference library and no production use yet. <a href="https://github.com/qdef-format/qdef-format.github.io/issues" style="color:inherit">Suggest changes &rarr;</a></div>';
-    page = page.replace('<main class="container content">', `<main class="container content">\n${banner}`);
-  }
 
   const outPath = path.join(OUT, cfg.out);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
