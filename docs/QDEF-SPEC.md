@@ -1269,11 +1269,13 @@ QDEF for it to keep working exactly as it does today.
 `900`; §7 below is an unrelated adopter using the same mechanism.)
 
 **Registering a real Type ID before governance exists.** `[900]` here is
-an illustrative placeholder, not a protected allocation — the
-`[N]` with `N` in `100`–`32767` tier has no review authority yet. Any
-adopter wiring this into real shipping code before that governance
-exists should pick their own namespace `Ns > 0` and use `[Ns, Nt]`
-instead — cheaper, and no Type ID to migrate later.
+an illustrative placeholder, not a protected allocation — it sits in the
+`256`–`65535` community range, which §4 marks Specification Required but
+which has no review authority yet. Any adopter wiring this into real
+shipping code before that governance exists should instead declare their
+own byte-string namespace (§3.5) and give the Record a negative typeId
+under it — `[h'ns', -1, { 0: h'<existing payload bytes>' }]` — cheaper,
+self-allocated, and with no Type ID to migrate later.
 
 **On signing:** an adopter whose own signature covers the
 fully-reassembled plaintext (after all splitting/addressing is
