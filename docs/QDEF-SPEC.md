@@ -155,8 +155,9 @@ namespace?, ns_annotation?, typeId*, type_annotation?, map?, subrecord*
   bstr if it precedes it on the same Record, else the ambient namespace
   from an ancestor Record (§3.5) — and every element after the first is
   a plain uint. Low non-negative values `1`–`22` are reserved for
-  standard QDEF types (§4); all other non-negative values are available
-  for application types. Absent (no integers) = **Bundle**.
+  standard QDEF types; the rest of the non-negative space is allocated
+  by tier, and not all of it is self-service (§4). Absent (no integers)
+  = **Bundle**.
 - **type_annotation** (optional): a **text string** immediately after
   the last typeId element — a human-readable label for the type, never
   load-bearing. Present only if at least one typeId element precedes it.
@@ -187,53 +188,34 @@ using ordinary CBOR array-skipping, without Record-grammar knowledge.
 | `[-N, { ... }]` | App type inheriting an *already-ambient* namespace (negative typeId, no namespace bstr of its own) |
 | `[h'ns', -N, { ... }]` | Namespace AND negative typeId on the SAME Record — self-scoped to its own declaration, no Bundle needed |
 
-A namespace bstr's job is always "become the ambient value for
-whatever's nested inside this Record" — that never changes. Whether it
-*also* scopes this Record's own typeId depends purely on that typeId's
-sign: `[h'ns', N, { ... }]` (non-negative typeId) still reads `N` as
-**global** — the namespace has no local effect there, it only becomes
-ambient for any subrecords. `[h'ns', -N, { ... }]` (negative typeId)
-instead resolves this Record's own scope to that same `h'ns'` — the two
-jobs (cascade, self-scope) land on the same Record and the same
-declaration serves both at once, at no extra byte cost either way.
+Why the last three rows differ is the subject of the next section.
 
 ### TypeId + Namespace system
 
-TypeId scope is decided **by its own sign**:
+A Record carries **two independent switches**. They are not one
+conditional rule, and neither reads the other:
+
+- A **namespace bstr** sets what is in scope *for this Record's
+  subrecords*. Unconditional — every Record carrying one does this,
+  whatever its own typeId.
+- A **typeId's sign** sets whether *this Record itself* opts into
+  whatever is in scope for it. Non-negative opts out and is global;
+  negative opts in and is scoped.
 
 | Case | Rule |
 |---|---|
 | first typeId element **negative** | typeId is **scoped** — adopts this Record's own namespace bstr if it carries one, else the ambient namespace from an ancestor Record |
-| first typeId element **non-negative** | typeId is **global** — same meaning for every decoder, regardless of any namespace bstr on this same Record |
+| first typeId element **non-negative** | typeId is **global** — the same meaning for every decoder |
 | **typeId** absent | **Bundle** — structural only |
 | **typeId** present | Standard Record |
 
-A typeId `[2]` is globally the Split wrapper (§4.1) whether or not a
-namespace bstr sits next to it on the same Record — a non-negative
-typeId never reads its own scope from a namespace bstr, only ambient
-context can flow *through* it to subrecords. `[-2]` scoped to an
-ambient namespace `h'deadbeef'` inherited from some ancestor, or
-`[h'deadbeef', -2, {...}]` scoped to that same value declared on its
-own array, are both app-chosen types local to `deadbeef`, unrelated to
-Split — the only difference is *where* the namespace was declared, not
-what `-2` means once resolved. This makes a namespace bstr useful as a
-one-shot, container-wide declaration: the root Record of a whole QDEF
-payload can carry a namespace purely to identify which app/vendor the
-container belongs to — a "magic" for the payload as a whole, doubling
-as that root Record's own scope too when its typeId happens to be
-negative (letting a single top-level scoped Record be the entire root,
-no Bundle wrapper needed just to host the declaration) — without that
-declaration ever accidentally reinterpreting a global type it happens
-to sit next to.
+A Record carrying both switches simply does both: it declares a
+namespace for its children *and*, being negative, adopts that same
+freshly-declared value for itself. That is why `[h'ns', 1, {...}]` is
+still globally the Split wrapper (§4.1) while `[h'ns', -1, {...}]` is
+an app type local to `ns` — the sign moved, not the namespace.
 
-Standard QDEF Record Types (§4) are always global (non-negative typeId,
-no namespace) with reserved low typeId numbers 1–22. Application types
-are global whenever their typeId is non-negative, full stop, regardless
-of any namespace bstr present — or scoped whenever their typeId is
-negative, adopting either their own namespace bstr (if they carry one)
-or the ambient value inherited from an ancestor otherwise. The X.X.X
-hierarchical space is shared — typeId sign alone, never namespace
-presence by itself, determines scope.
+§3.5 gives the precise resolution rules.
 
 ### Map key conventions
 
@@ -431,13 +413,12 @@ cheap, since Record Maps are small by construction.
 
 ### 3.5 Namespace Scoping
 
-A namespace is a byte string prefix on a Record. Its job is to become
-the ambient namespace whatever's nested inside that Record inherits —
-this is unconditional, true of every Record that carries one. Whether
-it *also* determines the scope of the Record carrying it depends
-entirely on that Record's own typeId sign (§3.2): inert (no local
-effect) on a non-negative typeId, but load-bearing on a negative one —
-see below.
+A namespace is a byte string prefix on a Record. It is the first of
+the two switches described in §3's *TypeId + Namespace system*: it
+sets the ambient namespace for whatever is nested inside that Record,
+unconditionally. Whether the Record carrying it is *itself* scoped is
+the other switch — its own typeId's sign. This section gives the
+precise resolution rules for both.
 
 The namespace value is self-chosen by the application — typically a
 hash-derived value from a reverse-domain string, 4+ bytes long for
@@ -471,24 +452,12 @@ a valid namespace token):
   Record's own bstr when present, ambient otherwise — never both at
   once, and never a third possibility.
 
-This is symmetric by design, not two separate rules to memorize: a
-namespace bstr's job is "become the ambient value for whatever's
-nested inside this Record" (stated above, unconditional); a negative
-typeId's job is "adopt whatever's ambient." A Record that carries both
-simply adopts its own, freshly-declared ambient — nothing beyond the
-two rules already stated, just what happens when they land on the same
-Record.
-
 **Best practice: a Record meant to be scoped always uses a negative
-typeId.** A non-negative typeId always means global, no matter what
-namespace bstr sits on the same Record or flows through as ambient —
-that's the only sign a decoder ever reads for scope. Whether that same
-Record's own namespace bstr is present (self-scoping) or absent
-(inheriting ambient from a parent, typically because a Bundle or an
-outer scoped Record already declared it) is an encoder-side choice with
-no wire-format consequence beyond the bstr's own 5 bytes when present —
-pick whichever shape needs the namespace declared at that exact point
-in the tree.
+typeId.** Where that Record's namespace is *declared* — on its own
+array (self-scoping) or on an ancestor (inheriting ambient) — is an
+encoder-side choice with no wire-format consequence beyond the bstr's
+own 5 bytes when present. Pick whichever shape needs the namespace
+declared at that exact point in the tree.
 
 **Declared vs. wire-encoded typeId.** A namespace's own type numbering
 (e.g. a `registry.rec` `ScopedTypeId`, or any spec's own scheme) is
@@ -672,8 +641,8 @@ global (no namespace bstr) by construction; the same typeId number
 inside an app-chosen namespace is a different, unrelated type.
 
 **Standard record type IDs** use the low range 1–22, reserved for the
-QDEF spec. Higher numbers are available for apps, with or without a
-namespace for scoping.
+QDEF spec. Higher numbers are for applications, under the allocation
+tiers below.
 
 **Currently assigned type IDs:**
 
@@ -713,19 +682,39 @@ local.
 | 256–65535 | 3 | Specification Required — community record types |
 | 65536+ | 5+ | First Come First Served — self-allocated, cross-app sharing |
 
+**Much of this table describes governance that does not exist yet.**
+It states the allocation policy the spec intends, not a registry you
+can go to. Until one exists:
+
+- **1–22** is live — allocated by this document, in the assignment
+  table above.
+- **Namespace + negative typeId (§3.5)** is live — self-allocated,
+  needs no authority, and is the path for any application type.
+- **23–65535 is reserved but not yet allocatable.** Both tiers are
+  marked Specification Required and there is no body to require a
+  specification of. Do not self-assign in this range: a number taken
+  now has no claim on it later, and a future registry may hand it to
+  someone else.
+- **65536+** is self-allocated like a namespace, but buys less: it
+  gives a globally-readable number with no collision isolation, at 5+
+  bytes rather than a namespace's 4–5. Prefer a namespace unless the
+  type is genuinely meant to be understood by unrelated applications
+  that will never share your namespace.
+
 **Choosing a type ID form:**
 
 ```
 1. Is this part of QDEF's own standard-record-type infrastructure?
      YES -> use assigned number 1-22, no namespace
 
-2. Does your app need collision isolation from other apps?
-     YES -> declare a byte-string namespace (§3.5) on an ancestor
-            Record, and use a negative typeId on the Record that's
-            actually typed — magnitude is local to your namespace,
-            chosen by you
+2. Everything else -> declare a byte-string namespace (§3.5), on this
+     Record or an ancestor, and use a negative typeId on the Record
+     that's actually typed — magnitude is local to your namespace,
+     chosen by you, no allocation to coordinate
 
-     NO  -> pick any number 24+ without a namespace (global)
+3. Only if the type must be readable by unrelated apps that will never
+     share your namespace -> a global number in the 65536+ FCFS tier
+     (23-65535 is reserved; see above)
 ```
 
 ### 4.1 Wrapper Records (optional)
