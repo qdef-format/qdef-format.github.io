@@ -15,7 +15,7 @@ The closest analogs fall into six groups:
 | Group | Formats | Shared with QDEF | QDEF's delta |
 |-------|---------|------------------|--------------|
 | **NFC containers** | NDEF | Multi-record, typed payloads, MIME integration | Per-field criticality (even/odd), byte-mode QR framing, no session concept |
-| **QR-specific containers** | BBQr, TagDrop | Magic header, single-scan payload, QR-targeted | Multi-type records within one scan, even/odd rule, CBOR Sequence wire format |
+| **QR-specific containers** | BBQr | Magic header, single-scan payload, QR-targeted | Multi-type records within one scan, even/odd rule, CBOR Sequence wire format |
 | **General typed-record containers** | MCAP | Magic bytes + sequence of self-describing typed records | Optical constraint target, even/odd, no indexing or seeking |
 | **Binary serialization** | CBOR, MessagePack, BSON | Compact binary encoding | Not a container — these are the *encoding* QDEF uses internally (CBOR), not alternative containers |
 | **Identifier/URI encodings** | GS1 Digital Link | URI/fallback-link concept, a growing need for compact structured data | Multi-record container, per-field criticality, binary (CBOR) from the wire up rather than a compression layer bolted onto text |
@@ -110,24 +110,6 @@ magic-byte header and a sequence of self-describing records.
 The general pattern — magic header, then a sequence of typed records — is
 well-proven across domains. QDEF applies it to the constrained optical
 case, not inventing the pattern.
-
-## TagDrop (2016 precursor)
-
-TagDrop was a 2016 proposal by the same author (mofosyne) that first
-suggested an NDEF-like binary header for QR codes. It identified the same
-gap QDEF now fills — that QR codes needed a typed multi-record container
-— but never advanced beyond a sketch.
-
-**Key differences between TagDrop and QDEF:**
-- TagDrop proposed a custom binary header; QDEF uses CBOR Sequences
-- TagDrop had no even/odd criticality rule
-- TagDrop was never prototyped as working decoder code
-- TagDrop's scope was narrower (routing only, no standard Record Types)
-
-QDEF is the first attempt to fully build out the idea TagDrop sketched:
-field-tested prototype, registered MIME type, defined Record Types, and a
-published specification. TagDrop is acknowledged as the conceptual
-precursor; see `mofosyne/tagdrop` on GitHub for the original proposal.
 
 ## CBOR Tags (RFC 8949 §9)
 
