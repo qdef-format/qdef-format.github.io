@@ -337,7 +337,7 @@ p > code, li > code {
   overflow-x: auto;
 }
 
-.content .spec-status {
+.spec-status {
   background: #fff3cd;
   border: 1px solid #ffc107;
   border-radius: var(--radius);
@@ -487,7 +487,7 @@ footer {
   p > code, li > code {
     background: #2d2d3d;
   }
-  .note, .content .spec-status, .validation-result.warning {
+  .note, .spec-status, .validation-result.warning {
     background: #2a2a16;
     border-color: #665500;
     color: var(--text);
